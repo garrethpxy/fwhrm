@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Class-Path: commons-io-2.4.jar ghost4j-0.5.1.jar jai_imageio.jar jna-4
+ .1.0.jar junit-4.10.jar log4j-1.2.17.jar tess4j.jar
+Main-Class: net.nekoinemo.documentrecognition.App
+
