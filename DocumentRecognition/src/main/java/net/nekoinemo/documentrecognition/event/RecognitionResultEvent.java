@@ -6,9 +6,6 @@ import net.nekoinemo.documentrecognition.document.DocumentType;
 
 import java.util.EventObject;
 
-/**
- * Created by krdm on 04.03.2015.
- */
 public class RecognitionResultEvent extends EventObject {
 
 	private final String documentID;
