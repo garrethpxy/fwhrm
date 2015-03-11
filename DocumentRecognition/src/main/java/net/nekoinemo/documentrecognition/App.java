@@ -40,6 +40,7 @@ public class App {
 		Recognizer recognizer = Recognizer.getInstance();
 		try {
 			recognizer.setTessDataPath(args[0]);
+			recognizer.setDebugOutputDirectory(new File(args[1]));
 			recognizer.Init();
 
 			recognizer.Start();

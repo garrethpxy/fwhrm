@@ -35,7 +35,9 @@ public class Recognizer implements Runnable {
 	private boolean isRunning = false;
 
 	private final LinkedBlockingQueue<RecognitionTarget> targets;
-	private final Tesseract tesseract;
+	private final Tesseract1 tesseract;
+
+	private File debugOutputDirectory = null;
 
 	public static Recognizer getInstance() {
 
@@ -45,7 +47,9 @@ public class Recognizer implements Runnable {
 
 	private Recognizer() {
 
-		tesseract = Tesseract.getInstance();
+		tesseract = new Tesseract1();
+		tesseract.setLanguage("eng");
+
 		targets = new LinkedBlockingQueue<>();
 	}
 
@@ -56,6 +60,14 @@ public class Recognizer implements Runnable {
 	public synchronized void Init(boolean testRecognition) throws RecognizerException {
 
 		if (isRunning) throw new RecognizerException("Can't initialize an active Recognizer!");
+
+		if (debugOutputDirectory != null){
+			if (!debugOutputDirectory.exists() || !debugOutputDirectory.isDirectory())
+				if (!debugOutputDirectory.mkdirs()) {
+					//todo event failed to create debug directory
+					debugOutputDirectory = null;
+				}
+		}
 
 		BufferedImage testImage;
 		try {
@@ -91,6 +103,12 @@ public class Recognizer implements Runnable {
 		if (isRunning) throw new RecognizerException("Can't change tessdata path of an active Recognizer!");
 
 		tesseract.setDatapath(value);
+	}
+	public void setDebugOutputDirectory(File debugOutputDirectory) throws RecognizerException {
+
+		if (isRunning) throw new RecognizerException("Can't change debug output directory while Recognizer is active!");
+
+		this.debugOutputDirectory = debugOutputDirectory;
 	}
 
 	public void PushAllFiles(File directory, RecognitionResultEventListener eventListener) throws InterruptedException {
@@ -149,6 +167,15 @@ public class Recognizer implements Runnable {
 		ArrayList<RecognitionResult> recognitionResults = new ArrayList<>(recognitionSettings.length);
 		DocumentType documentType = null;
 
+		OutputStreamWriter debugWriter = null;
+		if (debugOutputDirectory != null){
+			try {
+				debugWriter = new OutputStreamWriter(new FileOutputStream(new File(debugOutputDirectory, target.getId() + ".txt")));
+			} catch (IOException e) {
+				//todo failed to create debug file;
+			}
+		}
+
 		for (int i = 0; i < recognitionSettings.length; i++) {
 			RecognitionResult result = new RecognitionResult(recognitionSettings[i]);
 			recognitionResults.add(i, result);
@@ -156,9 +183,12 @@ public class Recognizer implements Runnable {
 			tesseract.setOcrEngineMode(result.getSettings().getEngineMode());
 			tesseract.setPageSegMode(result.getSettings().getPageSegMode());
 
-			String rawText;
 			try {
 				result.setRawText(RecognizeTarget(target, result.settings));
+				// todo remove. for debug only
+//				tesseract.setHocr(true);
+//				result.sethOCRText(RecognizeTarget(target, result.settings));
+//				tesseract.setHocr(false);
 			} catch (RecognizerException e) {
 				target.getEventListener().RecognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId(), e).getEvent());
 				throw new RecognizerException("Error recognizing image \"" + target.getId() + '\"', e);
@@ -180,6 +210,25 @@ public class Recognizer implements Runnable {
 
 			result.setDocumentDataBuilder(documentType.getBuilder());
 			result.getDocumentDataBuilder().ProcessText(result.getRawText());
+
+			// Debug output
+			if (debugWriter != null){
+				try {
+					debugWriter.write("iteration: " + i + "\tcompleteness: " + result.getDocumentDataBuilder().getCompleteness() + '\n');
+					debugWriter.write(result.getSettings().toString() + '\n');
+					debugWriter.write(result.getDocumentDataBuilder().getDocumentData().toString(true) + '\n');
+					debugWriter.write(result.getRawText() + '\n');
+					debugWriter.write('\n');
+					debugWriter.write(result.gethOCRText() + '\n');
+					debugWriter.write('\n');
+					debugWriter.flush();
+
+					if (i == recognitionSettings.length-1) debugWriter.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
 			if (i > 0) try {
 				result.getDocumentDataBuilder().FillEmptyFields(recognitionResults.get(i - 1).getDocumentDataBuilder().getDocumentData());
 			} catch (RecognizerException e) {}
@@ -218,7 +267,8 @@ public class Recognizer implements Runnable {
 	private class RecognitionResult {
 
 		private RecognitionSettings settings;
-		private String rawText;
+		private String rawText = null;
+		private String hOCRText = null;
 		private DocumentData.DocumentDataBuilder documentDataBuilder = null;
 
 		public RecognitionResult(RecognitionSettings settings) {
@@ -237,6 +287,14 @@ public class Recognizer implements Runnable {
 		public void setRawText(String rawText) {
 
 			this.rawText = rawText;
+		}
+		public String gethOCRText() {
+
+			return hOCRText;
+		}
+		public void sethOCRText(String hOCRText) {
+
+			this.hOCRText = hOCRText;
 		}
 		public DocumentData.DocumentDataBuilder getDocumentDataBuilder() {
 

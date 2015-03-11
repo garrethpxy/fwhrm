@@ -99,6 +99,23 @@ public class MOMData implements DocumentData {
 				(employer_uen != null ? " employer_uen='" + employer_uen + '\'' : "") +
 				" }";
 	}
+	public String toString(boolean full){
+
+		if (!full) return toString();
+
+		return "MOMData{" +
+				"\nfull_name='" + full_name + '\'' +
+				"\npassport_number='" + passport_number + '\'' +
+				"\ndate_of_birth='" + date_of_birth + '\'' +
+				"\nwork_permit_number='" + work_permit_number + '\'' +
+				"\nnric_or_fin_number='" + nric_or_fin_number + '\'' +
+				"\nnationality='" + nationality + '\'' +
+				"\noccupation='" + occupation + '\'' +
+				"\nemployer_name='" + employer_name + '\'' +
+				"\nemployer_telephone='" + employer_telephone + '\'' +
+				"\nemployer_uen='" + employer_uen + '\'' +
+				"\n}";
+	}
 
 	public static class MOMDataBuilder implements DocumentDataBuilder {
 

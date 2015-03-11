@@ -7,6 +7,9 @@ public interface DocumentData {
 	DocumentType getDocumentType();
 	int getCompleteness();
 
+	String toString();
+	String toString(boolean full);
+
 	public interface DocumentDataBuilder{
 
 		public DocumentData getDocumentData();

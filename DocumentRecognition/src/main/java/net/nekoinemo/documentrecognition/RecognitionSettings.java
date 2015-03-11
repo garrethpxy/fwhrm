@@ -72,4 +72,14 @@ public class RecognitionSettings {
 
 		return engineMode;
 	}
+
+	@Override
+	public String toString() {
+
+		return "RecognitionSettings{" +
+				"passingCompleteness=" + passingCompleteness +
+				", pageSegMode=" + pageSegMode +
+				", engineMode=" + engineMode +
+				'}';
+	}
 }
