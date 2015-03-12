@@ -21,6 +21,9 @@ public class Recognizer implements Runnable {
 
 		private final ArrayList SUPPORTED_EXTENSIONS = new ArrayList() {{
 			add(".pdf");
+			add(".jpg");
+			add(".jpeg");
+			add(".png");
 		}};
 
 		@Override
@@ -28,7 +31,7 @@ public class Recognizer implements Runnable {
 
 			if (!pathname.isFile()) return false;
 
-			String extension = pathname.getName().substring(pathname.getName().lastIndexOf('.'));
+			String extension = pathname.getName().substring(pathname.getName().toLowerCase().lastIndexOf('.'));
 			return SUPPORTED_EXTENSIONS.contains(extension);
 		}
 	};

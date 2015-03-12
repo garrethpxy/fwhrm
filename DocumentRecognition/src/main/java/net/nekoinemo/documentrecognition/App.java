@@ -17,8 +17,10 @@ public class App {
 
 		AppLocation = Paths.get(App.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
 
-		if (args.length != 2)
+		if (args.length != 2) {
 			System.out.println("Command line mode. Specify tessdata path as first argument and scans directory as second");
+			return;
+		}
 
 		RecognitionResultEventListener eventListener = new RecognitionResultEventListener() {
 			@Override
@@ -46,7 +48,8 @@ public class App {
 			recognizer.Init();
 
 			recognizer.Start();
-			recognizer.PushAllFiles(new File(args[1]), eventListener);
+			recognizer.PushAllFiles(new File(args[1]), eventListener); // All *supported* files in folder. Supported file extensions are defined in the Recognizer class
+			// recognizer.PushFile(new File(args[1]), eventListener); // Single file
 			while (recognizer.getQueueSize() > 0) Thread.sleep(1000);
 
 			recognizer.Stop();
