@@ -1,6 +1,7 @@
 package net.nekoinemo.documentrecognition;
 
 import net.nekoinemo.documentrecognition.event.RecognitionResultEvent;
+import net.nekoinemo.documentrecognition.event.RecognitionResultEventListener;
 
 import java.io.File;
 import java.io.FileNotFoundException;

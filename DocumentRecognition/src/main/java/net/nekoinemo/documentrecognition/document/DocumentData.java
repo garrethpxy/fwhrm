@@ -16,5 +16,6 @@ public interface DocumentData {
 		public void ProcessText(String text);
 		public int getCompleteness();
 		public void FillEmptyFields(DocumentData value) throws RecognizerException;
+		public void FillFields(DocumentData value) throws RecognizerException;
 	}
 }

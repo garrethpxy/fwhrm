@@ -3,7 +3,11 @@ package net.nekoinemo.documentrecognition;
 import net.nekoinemo.documentrecognition.document.DocumentData;
 import net.nekoinemo.documentrecognition.document.DocumentType;
 import net.nekoinemo.documentrecognition.event.RecognitionResultEvent;
+import net.nekoinemo.documentrecognition.event.RecognitionResultEventListener;
 import net.sourceforge.tess4j.*;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -35,7 +39,7 @@ public class Recognizer implements Runnable {
 	private boolean isRunning = false;
 
 	private final LinkedBlockingQueue<RecognitionTarget> targets;
-	private final Tesseract1 tesseract;
+	private final Tesseract tesseract;
 
 	private File debugOutputDirectory = null;
 
@@ -47,7 +51,7 @@ public class Recognizer implements Runnable {
 
 	private Recognizer() {
 
-		tesseract = new Tesseract1();
+		tesseract = Tesseract.getInstance();
 		tesseract.setLanguage("eng");
 
 		targets = new LinkedBlockingQueue<>();
@@ -59,9 +63,9 @@ public class Recognizer implements Runnable {
 	}
 	public synchronized void Init(boolean testRecognition) throws RecognizerException {
 
-		if (isRunning) throw new RecognizerException("Can't initialize an active Recognizer!");
+		if (isRunning) throw new RecognizerException("Recognizer is running!");
 
-		if (debugOutputDirectory != null){
+		if (debugOutputDirectory != null) {
 			if (!debugOutputDirectory.exists() || !debugOutputDirectory.isDirectory())
 				if (!debugOutputDirectory.mkdirs()) {
 					//todo event failed to create debug directory
@@ -78,6 +82,7 @@ public class Recognizer implements Runnable {
 
 		tesseract.setOcrEngineMode(TessAPI.TessOcrEngineMode.OEM_DEFAULT);
 		tesseract.setPageSegMode(TessAPI.TessPageSegMode.PSM_SINGLE_WORD);
+		tesseract.setHocr(false);
 
 		String result;
 		try {
@@ -87,6 +92,8 @@ public class Recognizer implements Runnable {
 		}
 		if (testRecognition && !result.trim().equalsIgnoreCase("test"))
 			throw new RecognizerException("Tesseract failed to recognize test image. Correct language/trained data may be missing from tessdata folder. Continuing with current settings may yeld low quality recognition results.");
+
+		tesseract.setHocr(true);
 	}
 
 	public boolean isRunning() {
@@ -100,13 +107,13 @@ public class Recognizer implements Runnable {
 
 	public void setTessDataPath(String value) throws RecognizerException {
 
-		if (isRunning) throw new RecognizerException("Can't change tessdata path of an active Recognizer!");
+		if (isRunning) throw new RecognizerException("Recognizer is running!");
 
 		tesseract.setDatapath(value);
 	}
 	public void setDebugOutputDirectory(File debugOutputDirectory) throws RecognizerException {
 
-		if (isRunning) throw new RecognizerException("Can't change debug output directory while Recognizer is active!");
+		if (isRunning) throw new RecognizerException("Recognizer is running!");
 
 		this.debugOutputDirectory = debugOutputDirectory;
 	}
@@ -119,11 +126,7 @@ public class Recognizer implements Runnable {
 	}
 	public void PushFile(File file, RecognitionResultEventListener eventListener) throws InterruptedException {
 
-		targets.put(new RecognitionTarget(file.getName(), file, false, eventListener));
-	}
-	public void PushImage(String id, BufferedImage image, RecognitionResultEventListener eventListener) throws InterruptedException {
-
-		targets.put(new RecognitionTarget(id, image, eventListener));
+		targets.put(new RecognitionTarget(file.getName(), file, eventListener));
 	}
 
 	public synchronized void Start() throws RecognizerException {
@@ -168,7 +171,7 @@ public class Recognizer implements Runnable {
 		DocumentType documentType = null;
 
 		OutputStreamWriter debugWriter = null;
-		if (debugOutputDirectory != null){
+		if (debugOutputDirectory != null) {
 			try {
 				debugWriter = new OutputStreamWriter(new FileOutputStream(new File(debugOutputDirectory, target.getId() + ".txt")));
 			} catch (IOException e) {
@@ -180,15 +183,8 @@ public class Recognizer implements Runnable {
 			RecognitionResult result = new RecognitionResult(recognitionSettings[i]);
 			recognitionResults.add(i, result);
 
-			tesseract.setOcrEngineMode(result.getSettings().getEngineMode());
-			tesseract.setPageSegMode(result.getSettings().getPageSegMode());
-
 			try {
-				result.setRawText(RecognizeTarget(target, result.settings));
-				// todo remove. for debug only
-//				tesseract.setHocr(true);
-//				result.sethOCRText(RecognizeTarget(target, result.settings));
-//				tesseract.setHocr(false);
+				result.sethOCR(Jsoup.parse(RecognizeTarget(target, result.settings)));
 			} catch (RecognizerException e) {
 				target.getEventListener().RecognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId(), e).getEvent());
 				throw new RecognizerException("Error recognizing image \"" + target.getId() + '\"', e);
@@ -212,18 +208,19 @@ public class Recognizer implements Runnable {
 			result.getDocumentDataBuilder().ProcessText(result.getRawText());
 
 			// Debug output
-			if (debugWriter != null){
+			if (debugWriter != null) {
 				try {
 					debugWriter.write("iteration: " + i + "\tcompleteness: " + result.getDocumentDataBuilder().getCompleteness() + '\n');
 					debugWriter.write(result.getSettings().toString() + '\n');
 					debugWriter.write(result.getDocumentDataBuilder().getDocumentData().toString(true) + '\n');
-					debugWriter.write(result.getRawText() + '\n');
 					debugWriter.write('\n');
-					debugWriter.write(result.gethOCRText() + '\n');
+					debugWriter.write(result.gethOCR().outerHtml() + '\n');
+					debugWriter.write('\n');
+					debugWriter.write(result.getRawText() + '\n');
 					debugWriter.write('\n');
 					debugWriter.flush();
 
-					if (i == recognitionSettings.length-1) debugWriter.close();
+					if (i == recognitionSettings.length - 1) debugWriter.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -247,28 +244,22 @@ public class Recognizer implements Runnable {
 	}
 	private String RecognizeTarget(RecognitionTarget target, RecognitionSettings recognitionSettings) throws RecognizerException {
 
-		if (target.isImage()) {
-			try {
-				BufferedImage image = target.getImage();
-				return tesseract.doOCR(image);
-			} catch (TesseractException e) {
-				throw new RecognizerException(e);
-			}
-		} else {
-			try {
-				File file = target.getFile();
-				return tesseract.doOCR(file);
-			} catch (TesseractException e) {
-				throw new RecognizerException(e);
-			}
+		tesseract.setOcrEngineMode(recognitionSettings.getEngineMode());
+		tesseract.setPageSegMode(recognitionSettings.getPageSegMode());
+
+		try {
+			File file = target.getFile();
+			return tesseract.doOCR(file);
+		} catch (TesseractException e) {
+			throw new RecognizerException(e);
 		}
 	}
 
 	private class RecognitionResult {
 
 		private RecognitionSettings settings;
+		private Document hOCR = null;
 		private String rawText = null;
-		private String hOCRText = null;
 		private DocumentData.DocumentDataBuilder documentDataBuilder = null;
 
 		public RecognitionResult(RecognitionSettings settings) {
@@ -284,17 +275,19 @@ public class Recognizer implements Runnable {
 
 			return rawText;
 		}
-		public void setRawText(String rawText) {
+		public Document gethOCR() {
 
-			this.rawText = rawText;
+			return hOCR;
 		}
-		public String gethOCRText() {
+		public void sethOCR(Document hOCR) {
 
-			return hOCRText;
-		}
-		public void sethOCRText(String hOCRText) {
+			this.hOCR = hOCR;
 
-			this.hOCRText = hOCRText;
+			StringBuilder stringBuilder = new StringBuilder();
+			for (Element ocr_par : hOCR.getElementsByClass("ocr_line")) {
+				stringBuilder.append(ocr_par.text() + '\n');
+			}
+			rawText = stringBuilder.toString();
 		}
 		public DocumentData.DocumentDataBuilder getDocumentDataBuilder() {
 
@@ -307,58 +300,28 @@ public class Recognizer implements Runnable {
 	}
 	private class RecognitionTarget {
 
-		private String id;
-		private BufferedImage image = null;
-		private File file = null;
-		private RecognitionResultEventListener eventListener;
-		private boolean isImage;
+		private final String id;
+		private final File file;
+		private final RecognitionResultEventListener eventListener;
 
-		public RecognitionTarget(String id, BufferedImage image, RecognitionResultEventListener eventListener) {
-
-			this.id = id;
-			this.image = image;
-			this.eventListener = eventListener;
-		}
-		public RecognitionTarget(String id, File file, boolean treatAsImage, RecognitionResultEventListener eventListener) {
+		public RecognitionTarget(String id, File file, RecognitionResultEventListener eventListener) {
 
 			this.id = id;
 			this.file = file;
 			this.eventListener = eventListener;
-			this.isImage = treatAsImage;
 		}
 
 		public String getId() {
 
 			return id;
 		}
-		public BufferedImage getImage() throws RecognizerException {
-
-			if (!isImage) throw new RecognizerException("Target is not an image.  " + file.getName());
-
-			if (image == null) {
-				try {
-					image = ImageIO.read(file);
-					if (image == null) throw new RecognizerException("Couldn't load image from file " + file.getName());
-				} catch (IOException e) {
-					throw new RecognizerException("Couldn't load image from file " + file.getName(), e);
-				}
-			}
-
-			return image;
-		}
 		public File getFile() throws RecognizerException {
-
-			if (file == null) throw new RecognizerException("Target is not a file.  " + file.getName());
 
 			return file;
 		}
 		public RecognitionResultEventListener getEventListener() {
 
 			return eventListener;
-		}
-		public boolean isImage() {
-
-			return isImage;
 		}
 	}
 }

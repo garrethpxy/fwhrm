@@ -132,25 +132,25 @@ public class MOMData implements DocumentData {
 
 		static {
 
-			patterns_full_name.add(Pattern.compile("Name.*?worker.*?([a-z][a-z ]+).*?$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+			patterns_full_name.add(Pattern.compile("Name.*?worker.*?((?:[A-Z\\d]{3,}[ ]?)+)", Pattern.MULTILINE));
 
-			patterns_passport_number.add(Pattern.compile("Passport.*?No.*?([a-z\\d]{5,})", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+			patterns_passport_number.add(Pattern.compile("Passport.*?No.*?([A-Z\\d]{5,})", Pattern.MULTILINE));
 
 			patterns_date_of_birth.add(Pattern.compile("Date.*?Birth.*?(\\d{2})\\/(\\d{2})\\/(\\d{4})", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
 			patterns_date_of_birth.add(Pattern.compile("Date.*?Birth.*?(\\d{2})[\\-\\.\\/\\\\](\\d{2})[\\-\\.\\/\\\\](\\d{4})", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
 
 			patterns_work_permit_number.add(Pattern.compile("WP.*?No.*?(\\d{5,})", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
 
-			patterns_nric_or_fin_number.add(Pattern.compile("FIN.*?([a-z]\\d{5,}[a-z])", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+			patterns_nric_or_fin_number.add(Pattern.compile("FIN.*?([A-Z]\\d{5,}[A-Z])", Pattern.MULTILINE));
 
-			patterns_nationality.add(Pattern.compile("Nationality.*?([a-z]{6,}).*?$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
-			patterns_nationality.add(Pattern.compile("Nationality.*?([a-z]{4,}).*?$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+			patterns_nationality.add(Pattern.compile("Nationality.*?([A-Z]{6,})", Pattern.MULTILINE));
+			patterns_nationality.add(Pattern.compile("Nationality.*?([A-Z]{4,})", Pattern.MULTILINE));
 
-			patterns_occupation.add(Pattern.compile("Occupation.*?([a-z][a-z ]{5,}).*?$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+			patterns_occupation.add(Pattern.compile("Occupation.*?((?:[A-Z\\d]{3,}[ ]?)+)", Pattern.MULTILINE));
 
-			patterns_employer_name.add(Pattern.compile("Name.*?Employer.*?:.*?([a-z\\d].*?)$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
-			patterns_employer_name.add(Pattern.compile("Name.*?Employer.*?\\w\\s*([a-z\\d].*?)$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
-			patterns_employer_name.add(Pattern.compile("Name.*?Employer.*?([a-z\\d]{3,}.*?)$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+			patterns_employer_name.add(Pattern.compile("Name.*?Employer.*?:.*?((?:[A-Z\\d]{3,}[\\.\\-]?[ ]?)+)", Pattern.MULTILINE));
+			patterns_employer_name.add(Pattern.compile("Name.*?Employer.*?\\w\\s*((?:[A-Z\\d]{3,}[\\.\\-]?[ ]?)+)", Pattern.MULTILINE));
+			patterns_employer_name.add(Pattern.compile("Name.*?Employer.*?((?:[A-Z\\d]{3,}[\\.\\-]?[ ]?)+)", Pattern.MULTILINE));
 
 			patterns_employer_telephone.add(Pattern.compile("Employer.*?Tel.*?No.*?(\\d{5,})", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
 
@@ -268,7 +268,23 @@ public class MOMData implements DocumentData {
 				} catch (Exception e) {	}
 			}
 		}
+		@Override
+		public void FillFields(DocumentData value) throws RecognizerException {
 
+			if (!value.getClass().equals(MOMData.class)) throw new RecognizerException("Passed subclass of DocumentData doesn't match this subclass");
+
+			for (String fieldName : momData.DATA_FIELDS) {
+				try {
+					Field field = MOMData.class.getDeclaredField(fieldName);
+
+					field.setAccessible(true);
+					Object valuesValue = field.get(value);
+					if (valuesValue != null)
+						field.set(momData, valuesValue);
+					field.setAccessible(false);
+				} catch (Exception e) {	}
+			}
+		}
 		public MOMDataBuilder setDate_of_birth(String date_of_birth) {
 
 			momData.date_of_birth = date_of_birth;

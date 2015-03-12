@@ -1,4 +1,4 @@
-package net.nekoinemo.documentrecognition;
+package net.nekoinemo.documentrecognition.event;
 
 import net.nekoinemo.documentrecognition.event.RecognitionResultEvent;
 
