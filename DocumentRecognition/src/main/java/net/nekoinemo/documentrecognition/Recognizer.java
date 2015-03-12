@@ -39,6 +39,7 @@ public class Recognizer implements Runnable {
 	private boolean isRunning = false;
 
 	private final LinkedBlockingQueue<RecognitionTarget> targets;
+	private RecognitionSettings[] recognitionSettings = RecognitionSettings.DEFAULT;
 	private final Tesseract tesseract;
 
 	private File debugOutputDirectory = null;
@@ -117,7 +118,16 @@ public class Recognizer implements Runnable {
 
 		this.debugOutputDirectory = debugOutputDirectory;
 	}
+	public RecognitionSettings[] getRecognitionSettings() {
 
+		return recognitionSettings;
+	}
+	public void setRecognitionSettings(RecognitionSettings[] recognitionSettings) throws RecognizerException {
+
+		if (isRunning) throw new RecognizerException("Recognizer is running!");
+
+		this.recognitionSettings = recognitionSettings;
+	}
 	public void PushAllFiles(File directory, RecognitionResultEventListener eventListener) throws InterruptedException {
 
 		for (File file : directory.listFiles(SUPPORTED_FILES_FILTER)) {
@@ -150,7 +160,7 @@ public class Recognizer implements Runnable {
 
 		while (isRunning) {
 			try {
-				Recognize(targets.take(), RecognitionSettings.DEFAULT);
+				Recognize(targets.take(), recognitionSettings);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			} catch (RecognizerException e) {
