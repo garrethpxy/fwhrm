@@ -26,26 +26,19 @@ public class RecognitionSettings {
 
 		DEFAULT = new RecognitionSettings[]{
 				new RecognitionSettings(90, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(90, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_COLUMN),
-				new RecognitionSettings(90, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(90, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_COLUMN)
+				new RecognitionSettings(90, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK)
 		};
 		SLOPPY = new RecognitionSettings[]{
 				new RecognitionSettings(75, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(75, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_COLUMN),
-				new RecognitionSettings(75, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(75, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_COLUMN)
+				new RecognitionSettings(75, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK)
 		};
 		FAST = new RecognitionSettings[]{
-				new RecognitionSettings(80, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(80, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_COLUMN)
+				new RecognitionSettings(80, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK)
 		};
 		PERFECTIONIST = new RecognitionSettings[]{
 				new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_COLUMN),
 				new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SPARSE_TEXT),
 				new RecognitionSettings(100, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(100, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_COLUMN),
 				new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SPARSE_TEXT)
 		};
 		WHATEVER = new RecognitionSettings[]{
