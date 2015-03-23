@@ -21,22 +21,48 @@ public class RecognitionResultEvent extends EventObject {
 		this.documentID = documentID;
 	}
 
+	/**
+	 * Returns the Throwable cause of the event being fired (Only set if event was fired because of an recognition error).
+	 *
+	 * @return
+	 */
 	public Throwable getCause() {
 
 		return cause;
 	}
+	/**
+	 * Returns an ID of the target.
+	 *
+	 * @return Target ID. For the files it matches the file name with the extension.
+	 */
 	public String getDocumentID() {
 
 		return documentID;
 	}
+	/**
+	 * Returns the recognized data of the document.
+	 * To access the fields result should be casted to the appropriate class based on type which can be obtained via event.getDocumentType().
+	 *
+	 * @return Class implementing the DocumentData interface.
+	 */
 	public DocumentData getDocumentData() {
 
 		return documentData;
 	}
+	/**
+	 * Returns the Type of a recognized document.
+	 *
+	 * @return Type of a recognized document or null if type was not recognized.
+	 */
 	public DocumentType getDocumentType() {
 
 		return documentType;
 	}
+	/**
+	 * Returns the percentage of the fields which contains recognized data.
+	 *
+	 * @return
+	 */
 	public int getRecognitionPercentage() {
 
 		return recognitionPercentage;

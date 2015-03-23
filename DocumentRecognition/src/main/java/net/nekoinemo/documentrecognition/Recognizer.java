@@ -24,6 +24,8 @@ public class Recognizer implements Runnable {
 			add(".jpg");
 			add(".jpeg");
 			add(".png");
+			add(".gif");
+			add(".bmp");
 		}};
 
 		@Override
@@ -47,6 +49,10 @@ public class Recognizer implements Runnable {
 
 	private File debugOutputDirectory = null;
 
+	/**
+	 * Returns an instance of a class.
+	 * @return
+	 */
 	public static Recognizer getInstance() {
 
 		if (instance == null) instance = new Recognizer();
@@ -61,10 +67,22 @@ public class Recognizer implements Runnable {
 		targets = new LinkedBlockingQueue<>();
 	}
 
+	/**
+	 * Initialize the Recognizer. Should be done before executing the Start().
+	 * Performs test recognition.
+	 *
+	 * @throws RecognizerException
+	 */
 	public synchronized void Init() throws RecognizerException {
 
 		Init(true);
 	}
+	/**
+	 * Initialize the Recognizer. Should be done before executing the Start().
+	 *
+	 * @param testRecognition Set to false if test recognition step should be skipped. Test recognition will throw an error if Recognized isn't initialized properly.
+	 * @throws RecognizerException
+	 */
 	public synchronized void Init(boolean testRecognition) throws RecognizerException {
 
 		if (isRunning) throw new RecognizerException("Recognizer is running!");
@@ -109,39 +127,85 @@ public class Recognizer implements Runnable {
 		return targets.size();
 	}
 
+	/**
+	 * Specifies the path to the tessdata directory. Directory should contain language and training data for the used languages.
+	 *
+	 * @param value Path to the tessdata directory.
+	 * @throws RecognizerException if Recognizer is currently running.
+	 */
 	public void setTessDataPath(String value) throws RecognizerException {
 
 		if (isRunning) throw new RecognizerException("Recognizer is running!");
 
 		tesseract.setDatapath(value);
 	}
+	/**
+	 * Specifies the directory for the debug output. if none specified - there will be no debug output.
+	 * Debug output file has file name of target ID + ".txt" and contains results (found data, raw text, hOCR text) of each recognition iteration for this target.
+	 * Debug output shouldn't be active in a normal circumstantials as it performs a lot of (unnecessary) write operations to the hard drive.
+	 *
+	 * @param debugOutputDirectory Path to the debug output directory.
+	 * @throws RecognizerException if Recognizer is currently running.
+	 */
 	public void setDebugOutputDirectory(File debugOutputDirectory) throws RecognizerException {
 
 		if (isRunning) throw new RecognizerException("Recognizer is running!");
 
 		this.debugOutputDirectory = debugOutputDirectory;
 	}
+	/**
+	 * Returns current recognition settings.
+	 *
+	 * @return
+	 */
 	public RecognitionSettings[] getRecognitionSettings() {
 
 		return recognitionSettings;
 	}
+	/**
+	 * Specifies recognition setting that should be used.
+	 *
+	 * @param recognitionSettings Array of the ordered RecognitionSettings.
+	 * @throws RecognizerException if Recognizer is currently running.
+	 */
 	public void setRecognitionSettings(RecognitionSettings[] recognitionSettings) throws RecognizerException {
 
 		if (isRunning) throw new RecognizerException("Recognizer is running!");
 
 		this.recognitionSettings = recognitionSettings;
 	}
+	/**
+	 * Puts all supported files in the recognition queue.
+	 *
+	 * @param directory Directory containing the files to be processed. Only files of the supported types will be added to the queue.
+	 * @param eventListener Event listener that should process the recognition result.
+	 *                         This event listener will be set for every found file. Files can e differentiated based on their ID (matches the file name).
+	 * @throws InterruptedException
+	 */
 	public void PushAllFiles(File directory, RecognitionResultEventListener eventListener) throws InterruptedException {
 
 		for (File file : directory.listFiles(SUPPORTED_FILES_FILTER)) {
 			PushFile(file, eventListener);
 		}
 	}
+	/**
+	 * Puts a file in the recognition queue. File type is not checked (can cause and exception if unsupported file is provided).
+	 *
+	 * @param file File to be recognized.
+	 * @param eventListener Event listener that should process the recognition result.
+	 * @throws InterruptedException
+	 */
 	public void PushFile(File file, RecognitionResultEventListener eventListener) throws InterruptedException {
 
 		targets.put(new RecognitionTarget(file.getName(), file, eventListener));
 	}
 
+	/**
+	 * Starts Recognizer in a standby mode, awaiting for the files to process. If files were already put into the queue - begins processing them immediately.
+	 * For the recognizer to function correctly it has to be initialized with Init() first.
+	 *
+	 * @throws RecognizerException
+	 */
 	public synchronized void Start() throws RecognizerException {
 
 		if (isRunning) return;
@@ -150,6 +214,11 @@ public class Recognizer implements Runnable {
 		thread = new Thread(this, "Recognizer thread");
 		thread.start();
 	}
+	/**
+	 * Stops Recognizer, aborting any pending task in the queue. Queue is cleared uppon stopping.
+	 *
+	 * @throws InterruptedException
+	 */
 	public synchronized void Stop() throws InterruptedException {
 
 		if (!isRunning) return;
