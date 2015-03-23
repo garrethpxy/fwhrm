@@ -5,7 +5,7 @@ import net.sourceforge.tess4j.TessAPI;
 public class RecognitionSettings {
 
 	public static final int PAGESEG_MODE_AUTO = TessAPI.TessPageSegMode.PSM_AUTO;
-	public static final int PAGESEG_MODE_SINGLE_COLUMN = TessAPI.TessPageSegMode.PSM_SINGLE_COLUMN;
+	//public static final int PAGESEG_MODE_SINGLE_COLUMN = TessAPI.TessPageSegMode.PSM_SINGLE_COLUMN; // Causes error on Tesseract 3.02
 	public static final int PAGESEG_MODE_SINGLE_BLOCK = TessAPI.TessPageSegMode.PSM_SINGLE_BLOCK;
 	public static final int PAGESEG_MODE_SPARSE_TEXT = TessAPI.TessPageSegMode.PSM_SPARSE_TEXT;
 
@@ -26,27 +26,20 @@ public class RecognitionSettings {
 
 		DEFAULT = new RecognitionSettings[]{
 				new RecognitionSettings(90, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(90, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_COLUMN),
-				new RecognitionSettings(90, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(90, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_COLUMN)
+				new RecognitionSettings(90, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK)
 		};
 		SLOPPY = new RecognitionSettings[]{
 				new RecognitionSettings(75, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(75, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_COLUMN),
-				new RecognitionSettings(75, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(75, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_COLUMN)
+				new RecognitionSettings(75, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK)
 		};
 		FAST = new RecognitionSettings[]{
-				new RecognitionSettings(80, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(80, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_COLUMN)
+				new RecognitionSettings(80, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK)
 		};
 		PERFECTIONIST = new RecognitionSettings[]{
 				new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_COLUMN),
 				new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SPARSE_TEXT),
 				new RecognitionSettings(100, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(100, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_COLUMN),
-				new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SPARSE_TEXT)
+				new RecognitionSettings(100, ENGINE_MODE_FULL, PAGESEG_MODE_SPARSE_TEXT)
 		};
 		WHATEVER = new RecognitionSettings[]{
 				new RecognitionSettings(0, ENGINE_MODE_BASIC, PAGESEG_MODE_AUTO)
