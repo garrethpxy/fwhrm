@@ -28,11 +28,11 @@ public enum DocumentType {
 
 		return (((float) result / patterns.size()) * 100);
 	}
-	public DocumentData.DocumentDataBuilder getBuilder() {
+	public DocumentDataBuilder getBuilder() {
 
 		switch (this) {
 			case MOM:
-				return new MOMData.MOMDataBuilder();
+				return new MOMDataBuilder();
 			default:
 				return null;
 		}

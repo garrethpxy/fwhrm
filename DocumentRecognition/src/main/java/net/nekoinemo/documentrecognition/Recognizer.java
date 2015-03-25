@@ -1,7 +1,6 @@
 package net.nekoinemo.documentrecognition;
 
-import net.nekoinemo.documentrecognition.document.DocumentData;
-import net.nekoinemo.documentrecognition.document.DocumentType;
+import net.nekoinemo.documentrecognition.document.*;
 import net.nekoinemo.documentrecognition.event.RecognitionResultEvent;
 import net.nekoinemo.documentrecognition.event.RecognitionResultEventListener;
 import net.sourceforge.tess4j.*;
@@ -10,6 +9,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
@@ -51,6 +51,7 @@ public class Recognizer implements Runnable {
 
 	/**
 	 * Returns an instance of a class.
+	 *
 	 * @return
 	 */
 	public static Recognizer getInstance() {
@@ -81,6 +82,7 @@ public class Recognizer implements Runnable {
 	 * Initialize the Recognizer. Should be done before executing the Start().
 	 *
 	 * @param testRecognition Set to false if test recognition step should be skipped. Test recognition will throw an error if Recognized isn't initialized properly.
+	 *
 	 * @throws RecognizerException
 	 */
 	public synchronized void Init(boolean testRecognition) throws RecognizerException {
@@ -131,6 +133,7 @@ public class Recognizer implements Runnable {
 	 * Specifies the path to the tessdata directory. Directory should contain language and training data for the used languages.
 	 *
 	 * @param value Path to the tessdata directory.
+	 *
 	 * @throws RecognizerException if Recognizer is currently running.
 	 */
 	public void setTessDataPath(String value) throws RecognizerException {
@@ -145,6 +148,7 @@ public class Recognizer implements Runnable {
 	 * Debug output shouldn't be active in a normal circumstantials as it performs a lot of (unnecessary) write operations to the hard drive.
 	 *
 	 * @param debugOutputDirectory Path to the debug output directory.
+	 *
 	 * @throws RecognizerException if Recognizer is currently running.
 	 */
 	public void setDebugOutputDirectory(File debugOutputDirectory) throws RecognizerException {
@@ -166,6 +170,7 @@ public class Recognizer implements Runnable {
 	 * Specifies recognition setting that should be used.
 	 *
 	 * @param recognitionSettings Array of the ordered RecognitionSettings.
+	 *
 	 * @throws RecognizerException if Recognizer is currently running.
 	 */
 	public void setRecognitionSettings(RecognitionSettings[] recognitionSettings) throws RecognizerException {
@@ -177,9 +182,10 @@ public class Recognizer implements Runnable {
 	/**
 	 * Puts all supported files in the recognition queue.
 	 *
-	 * @param directory Directory containing the files to be processed. Only files of the supported types will be added to the queue.
+	 * @param directory     Directory containing the files to be processed. Only files of the supported types will be added to the queue.
 	 * @param eventListener Event listener that should process the recognition result.
-	 *                         This event listener will be set for every found file. Files can e differentiated based on their ID (matches the file name).
+	 *                      This event listener will be set for every found file. Files can e differentiated based on their ID (matches the file name).
+	 *
 	 * @throws InterruptedException
 	 */
 	public void PushAllFiles(File directory, RecognitionResultEventListener eventListener) throws InterruptedException {
@@ -191,8 +197,9 @@ public class Recognizer implements Runnable {
 	/**
 	 * Puts a file in the recognition queue. File type is not checked (can cause and exception if unsupported file is provided).
 	 *
-	 * @param file File to be recognized.
+	 * @param file          File to be recognized.
 	 * @param eventListener Event listener that should process the recognition result.
+	 *
 	 * @throws InterruptedException
 	 */
 	public void PushFile(File file, RecognitionResultEventListener eventListener) throws InterruptedException {
@@ -249,9 +256,7 @@ public class Recognizer implements Runnable {
 
 	private void Recognize(RecognitionTarget target, RecognitionSettings[] recognitionSettings) throws RecognizerException {
 
-		ArrayList<RecognitionResult> recognitionResults = new ArrayList<>(recognitionSettings.length);
-		DocumentType documentType = null;
-
+		// Set up debug output
 		OutputStreamWriter debugWriter = null;
 		if (debugOutputDirectory != null) {
 			try {
@@ -261,33 +266,33 @@ public class Recognizer implements Runnable {
 			}
 		}
 
+		// Get document type
+		DocumentType documentType = null;
+		try {
+			documentType = GetDocumentType(target);
+		} catch (RecognizerException e) {
+			target.getEventListener().RecognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId(), e).getEvent());
+			throw e;
+		}
+		if (documentType == null) {
+			target.getEventListener().RecognitionFinished(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(documentType).getEvent());
+		}
+
+		// Do recognition
+		ArrayList<RecognitionResult> recognitionResults = new ArrayList<>(recognitionSettings.length);
 		for (int i = 0; i < recognitionSettings.length; i++) {
 			RecognitionResult result = new RecognitionResult(recognitionSettings[i]);
 			recognitionResults.add(i, result);
 
+			DocumentDataBuilder builder = documentType.getBuilder();
+			result.setDocumentDataBuilder(builder);
+
 			try {
-				result.sethOCR(Jsoup.parse(RecognizeTarget(target, result.settings)));
+				builder.ProcessImage(target.getFile(), result.settings);
 			} catch (RecognizerException e) {
 				target.getEventListener().RecognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId(), e).getEvent());
 				throw new RecognizerException("Error recognizing image \"" + target.getId() + '\"', e);
 			}
-
-			if (documentType == null) {
-				float bestMatch = 0f;
-
-				for (DocumentType type : DocumentType.values()) {
-					float match = type.MatchText(result.getRawText());
-					if (match > bestMatch) {
-						documentType = type;
-						bestMatch = match;
-					}
-				}
-
-				if (documentType == null) continue;
-			}
-
-			result.setDocumentDataBuilder(documentType.getBuilder());
-			result.getDocumentDataBuilder().ProcessText(result.getRawText());
 
 			// Debug output
 			if (debugWriter != null) {
@@ -295,10 +300,6 @@ public class Recognizer implements Runnable {
 					debugWriter.write("iteration: " + i + "\tcompleteness: " + result.getDocumentDataBuilder().getCompleteness() + '\n');
 					debugWriter.write(result.getSettings().toString() + '\n');
 					debugWriter.write(result.getDocumentDataBuilder().getDocumentData().toString(true) + '\n');
-					debugWriter.write('\n');
-					debugWriter.write(result.gethOCR().outerHtml() + '\n');
-					debugWriter.write('\n');
-					debugWriter.write(result.getRawText() + '\n');
 					debugWriter.write('\n');
 					debugWriter.flush();
 
@@ -316,25 +317,43 @@ public class Recognizer implements Runnable {
 				break;
 		}
 
-		RecognitionResultEvent.RecognitionResultEventBuilder eventBuilder = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(documentType);
-		if (documentType != null) {
-			DocumentData documentData = recognitionResults.get(recognitionResults.size() - 1).getDocumentDataBuilder().getDocumentData();
-			eventBuilder.setDocumentData(documentData);
-			eventBuilder.setRecognitionPercentage(documentData.getCompleteness());
-		}
+		// Send recognition results
+		DocumentData documentData = recognitionResults.get(recognitionResults.size() - 1).getDocumentDataBuilder().getDocumentData();
+		RecognitionResultEvent.RecognitionResultEventBuilder eventBuilder = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(documentType).setDocumentData(documentData).setRecognitionPercentage(documentData.getCompleteness());
 		target.getEventListener().RecognitionFinished(eventBuilder.getEvent());
 	}
-	private String RecognizeTarget(RecognitionTarget target, RecognitionSettings recognitionSettings) throws RecognizerException {
+	public String RecognizeFile(File target, Rectangle area, RecognitionSettings recognitionSettings) throws RecognizerException {
 
 		tesseract.setOcrEngineMode(recognitionSettings.getEngineMode());
 		tesseract.setPageSegMode(recognitionSettings.getPageSegMode());
 
 		try {
-			File file = target.getFile();
-			return tesseract.doOCR(file);
+			return tesseract.doOCR(target, area);
 		} catch (TesseractException e) {
 			throw new RecognizerException(e);
 		}
+	}
+	private DocumentType GetDocumentType(RecognitionTarget target) throws RecognizerException {
+
+		DocumentType documentType = null;
+		final Document hOCRText;
+		float bestMatch = 0f;
+
+		try {
+			hOCRText = Jsoup.parse(RecognizeFile(target.getFile(), null, new RecognitionSettings(0, RecognitionSettings.ENGINE_MODE_BASIC, RecognitionSettings.PAGESEG_MODE_SINGLE_BLOCK)));
+		} catch (RecognizerException e) {
+			throw new RecognizerException("Error recognizing image \"" + target.getId() + '\"', e);
+		}
+
+		for (DocumentType type : DocumentType.values()) {
+			float match = type.MatchText(hOCRText.text());
+			if (match > bestMatch) {
+				documentType = type;
+				bestMatch = match;
+			}
+		}
+
+		return documentType;
 	}
 
 	private class RecognitionResult {
@@ -342,7 +361,7 @@ public class Recognizer implements Runnable {
 		private RecognitionSettings settings;
 		private Document hOCR = null;
 		private String rawText = null;
-		private DocumentData.DocumentDataBuilder documentDataBuilder = null;
+		private DocumentDataBuilder documentDataBuilder = null;
 
 		public RecognitionResult(RecognitionSettings settings) {
 
@@ -371,11 +390,11 @@ public class Recognizer implements Runnable {
 			}
 			rawText = stringBuilder.toString();
 		}
-		public DocumentData.DocumentDataBuilder getDocumentDataBuilder() {
+		public DocumentDataBuilder getDocumentDataBuilder() {
 
 			return documentDataBuilder;
 		}
-		public void setDocumentDataBuilder(DocumentData.DocumentDataBuilder documentDataBuilder) {
+		public void setDocumentDataBuilder(DocumentDataBuilder documentDataBuilder) {
 
 			this.documentDataBuilder = documentDataBuilder;
 		}
