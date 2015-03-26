@@ -16,11 +16,11 @@ public class WorkPermitAreaStructure {
 	private final static float MODIFIER_CATEGORY_X = 0.14f;
 	private final static float MODIFIER_CATEGORY_WIDTH = 0.36f;
 	private final static float MODIFIER_CATEGORY_Y = 0.26f;
-	private final static float MODIFIER_CATEGORY_HEIGHT = 0.04f;
+	private final static float MODIFIER_CATEGORY_HEIGHT = 0.05f;
 	private final static float MODIFIER_EMPLOYER_X = 0.05f;
 	private final static float MODIFIER_EMPLOYER_WIDTH = 0.55f;
 	private final static float MODIFIER_EMPLOYER_Y = 0.19f;
-	private final static float MODIFIER_EMPLOYER_HEIGHT = 0.04f;
+	private final static float MODIFIER_EMPLOYER_HEIGHT = 0.05f;
 
 	private final Rectangle mainArea;
 	private final Rectangle title;

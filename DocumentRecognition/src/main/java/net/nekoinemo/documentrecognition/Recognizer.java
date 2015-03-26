@@ -4,6 +4,7 @@ import net.nekoinemo.documentrecognition.document.*;
 import net.nekoinemo.documentrecognition.event.RecognitionResultEvent;
 import net.nekoinemo.documentrecognition.event.RecognitionResultEventListener;
 import net.sourceforge.tess4j.*;
+import org.apache.commons.io.FilenameUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -323,10 +324,18 @@ public class Recognizer implements Runnable {
 			throw e;
 		}
 
+		// Prepare file for recognition
+		ArrayList<File> images = null;
+		try {
+			images = GetPreparedImages(target.getFile());
+		} catch (IOException e) {
+			RecognizerException exception = new RecognizerException("Error processing file \"" + target.getId() + '\"', e);
+			target.getEventListener().RecognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId(), exception).getEvent());
+			throw exception;
+		}
+
 		// Do recognition
 		ArrayList<RecognitionResult> recognitionResults = new ArrayList<>(recognitionSettings.length);
-		ArrayList<File> images = Helper.GetImagesFromFile(target.getFile());
-
 		for (int i = 0; i < recognitionSettings.length; i++) {
 			RecognitionResult result = new RecognitionResult(recognitionSettings[i]);
 			recognitionResults.add(i, result);
@@ -406,6 +415,17 @@ public class Recognizer implements Runnable {
 		return documentType;
 	}
 
+	private ArrayList<File> GetPreparedImages(File source) throws IOException {
+
+		ArrayList<File> pages = Helper.GetImagesFromFile(source);
+		for (File page : pages) {
+			BufferedImage image = ImageIO.read(page);
+			image = Helper.DeskewImage(image);
+			ImageIO.write(image, "png", new File(FilenameUtils.removeExtension(page.getAbsolutePath()).concat(".png")));
+		}
+
+		return pages;
+	}
 	private void CleanWorkingDirectory() {
 
 		for (File file : workingImagesDirectory.listFiles()) {
