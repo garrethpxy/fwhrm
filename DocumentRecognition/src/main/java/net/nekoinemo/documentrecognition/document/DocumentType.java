@@ -13,7 +13,16 @@ public enum DocumentType {
 		add(Pattern.compile("WP.*?No", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
 		add(Pattern.compile("Name.*?worker", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
 		add(Pattern.compile("mom", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
-	}}), WORK_PERMIT(new ArrayList<Pattern>()), PASSPORT(new ArrayList<Pattern>());
+	}}), WORK_PERMIT(new ArrayList(){{
+		add(Pattern.compile("work.*?permit", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+		add(Pattern.compile("sector", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+		add(Pattern.compile("foreign.*?manpower.*?act", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+		add(Pattern.compile("visit.*?pass", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+		add(Pattern.compile("immigration.*?regulations", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+		add(Pattern.compile("surrender.*?this.*?card", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+	}}), PASSPORT(new ArrayList(){{
+
+	}});
 
 	private ArrayList<Pattern> patterns;
 
@@ -33,6 +42,8 @@ public enum DocumentType {
 		switch (this) {
 			case MOM:
 				return new MOMDataBuilder();
+			case WORK_PERMIT:
+				return new WPDataBuilder();
 			default:
 				return null;
 		}

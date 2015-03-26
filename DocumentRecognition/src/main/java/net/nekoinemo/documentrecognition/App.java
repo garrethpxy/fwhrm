@@ -52,16 +52,18 @@ public class App {
 			// Initialization of the Recognizer. Need to be done once in the initialization of the system
 			recognizer.setTessDataPath(args[0]);
 			recognizer.setRecognitionSettings(RecognitionSettings.DEFAULT);
-			recognizer.setDebugOutputDirectory(new File(args[1]));
+			recognizer.setTemporaryDirectoriesLocation(new File(args[1]));
+			recognizer.setDebugOutput(true);
 			recognizer.Init();
 
 			// Puts recognizer in a standby mode, awaiting for the files to process
 			recognizer.Start();
 
 			recognizer.PushAllFiles(new File(args[1]), eventListener); // All *supported* files in folder. Supported file extensions are defined in the Recognizer class
+			int queueSize = recognizer.getQueueSize();
 			//recognizer.PushFile(new File(args[1]), eventListener); // Single file
 			//while (recognizer.getQueueSize() > 0) Thread.sleep(1000);
-			while (results.size()<2) Thread.sleep(1000);
+			while (results.size()<queueSize) Thread.sleep(1000);
 
 			// Stops the recognizer, aborting any queued tasks. Should be done on the system shutdown
 			recognizer.Stop();

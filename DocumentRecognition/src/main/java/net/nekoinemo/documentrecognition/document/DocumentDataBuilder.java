@@ -5,9 +5,6 @@ import net.nekoinemo.documentrecognition.RecognizerException;
 
 import java.io.File;
 
-/**
-* Created by krdm on 25.03.2015.
-*/
 public interface DocumentDataBuilder {
 
 	public DocumentData getDocumentData();

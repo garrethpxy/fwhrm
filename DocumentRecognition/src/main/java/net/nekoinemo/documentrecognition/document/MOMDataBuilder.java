@@ -10,9 +10,6 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
-* Created by krdm on 25.03.2015.
-*/
 public class MOMDataBuilder implements DocumentDataBuilder {
 
 	private static ArrayList<Pattern> patterns_date_of_birth = new ArrayList<>();
@@ -70,10 +67,9 @@ public class MOMDataBuilder implements DocumentDataBuilder {
 	@Override
 	public void ProcessImage(File target, RecognitionSettings settings) throws RecognizerException {
 
-		Recognizer recognizer = Recognizer.getInstance();
-
-		Document document = Jsoup.parse(recognizer.RecognizeFile(target, null, settings));
-		String rawText = document.text();
+		final Recognizer recognizer = Recognizer.getInstance();
+		final Document document = Jsoup.parse(recognizer.RecognizeFile(target, null, settings));
+		final String rawText = Helper.GetProperTextFromJSoupDoc(document);
 
 		Matcher matcher;
 		for (int i = 0; i < patterns_full_name.size(); i++) {

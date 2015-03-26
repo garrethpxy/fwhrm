@@ -6,7 +6,6 @@ import net.nekoinemo.documentrecognition.event.RecognitionResultEventListener;
 import net.sourceforge.tess4j.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -14,6 +13,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public class Recognizer implements Runnable {
 
@@ -47,7 +47,12 @@ public class Recognizer implements Runnable {
 	private RecognitionSettings[] recognitionSettings = RecognitionSettings.DEFAULT;
 	private final Tesseract tesseract;
 
+	private File temporaryDirectoriesLocation = null;
 	private File debugOutputDirectory = null;
+	private File workingImagesDirectory = null;
+
+	private boolean debugOutput = false;
+	private boolean isInitialized = false;
 
 	/**
 	 * Returns an instance of a class.
@@ -89,14 +94,26 @@ public class Recognizer implements Runnable {
 
 		if (isRunning) throw new RecognizerException("Recognizer is running!");
 
-		if (debugOutputDirectory != null) {
-			if (!debugOutputDirectory.exists() || !debugOutputDirectory.isDirectory())
-				if (!debugOutputDirectory.mkdirs()) {
-					//todo event failed to create debug directory
-					debugOutputDirectory = null;
-				}
+		// Temporary folder checking
+		if (temporaryDirectoriesLocation == null)
+			throw new RecognizerException("Temporary directory location not specified");
+		if (!temporaryDirectoriesLocation.exists() || !temporaryDirectoriesLocation.isDirectory()) try {
+			if (!temporaryDirectoriesLocation.mkdirs()) {
+				throw new RecognizerException("Can't create temporary directory");
+			}
+		} catch (SecurityException e) {
+			throw new RecognizerException("Can't create temporary directory", e);
+		}
+		workingImagesDirectory = new File(temporaryDirectoriesLocation, "workingImages");
+		workingImagesDirectory.mkdir();
+
+		// Debug folder
+		if (debugOutput) {
+			debugOutputDirectory = new File(temporaryDirectoriesLocation, "debug");
+			debugOutputDirectory.mkdir();
 		}
 
+		// Recognition test
 		BufferedImage testImage;
 		try {
 			testImage = ImageIO.read(Recognizer.class.getResourceAsStream("testText.png"));
@@ -118,6 +135,7 @@ public class Recognizer implements Runnable {
 			throw new RecognizerException("Tesseract failed to recognize test image. Correct language/trained data may be missing from tessdata folder. Continuing with current settings may yeld low quality recognition results.");
 
 		tesseract.setHocr(true);
+		isInitialized = true;
 	}
 
 	public boolean isRunning() {
@@ -142,20 +160,39 @@ public class Recognizer implements Runnable {
 
 		tesseract.setDatapath(value);
 	}
+	public boolean isDebugOutput() {
+
+		return debugOutput;
+	}
 	/**
-	 * Specifies the directory for the debug output. if none specified - there will be no debug output.
-	 * Debug output file has file name of target ID + ".txt" and contains results (found data, raw text, hOCR text) of each recognition iteration for this target.
-	 * Debug output shouldn't be active in a normal circumstantials as it performs a lot of (unnecessary) write operations to the hard drive.
+	 * Sets whenever debug output should be created. Output is stored in the "debug" folder inside the temporary directory.
 	 *
-	 * @param debugOutputDirectory Path to the debug output directory.
-	 *
-	 * @throws RecognizerException if Recognizer is currently running.
+	 * @param debugOutput
 	 */
-	public void setDebugOutputDirectory(File debugOutputDirectory) throws RecognizerException {
+	public void setDebugOutput(boolean debugOutput) {
 
-		if (isRunning) throw new RecognizerException("Recognizer is running!");
+		this.debugOutput = debugOutput;
+	}
+	public File getDebugOutputDirectory() {
 
-		this.debugOutputDirectory = debugOutputDirectory;
+		return debugOutputDirectory;
+	}
+	public File getWorkingImagesDirectory() {
+
+		return workingImagesDirectory;
+	}
+	public File getTemporaryDirectoriesLocation() {
+
+		return temporaryDirectoriesLocation;
+	}
+	/**
+	 * Sets the location of the temporary folder.
+	 *
+	 * @param temporaryDirectoriesLocation Location where the folder(s) for the temporary files will be created.
+	 */
+	public void setTemporaryDirectoriesLocation(File temporaryDirectoriesLocation) {
+
+		this.temporaryDirectoriesLocation = temporaryDirectoriesLocation;
 	}
 	/**
 	 * Returns current recognition settings.
@@ -209,13 +246,14 @@ public class Recognizer implements Runnable {
 
 	/**
 	 * Starts Recognizer in a standby mode, awaiting for the files to process. If files were already put into the queue - begins processing them immediately.
-	 * For the recognizer to function correctly it has to be initialized with Init() first.
+	 * For the recognizer to function correctly it has to be initialized with Init() first otherwise this method will throw an error.
 	 *
-	 * @throws RecognizerException
+	 * @throws RecognizerException if Recognizer wasn't properly initialized
 	 */
 	public synchronized void Start() throws RecognizerException {
 
 		if (isRunning) return;
+		if (!isInitialized) throw new RecognizerException("Recognizer wasn't initialized");
 
 		isRunning = true;
 		thread = new Thread(this, "Recognizer thread");
@@ -223,6 +261,7 @@ public class Recognizer implements Runnable {
 	}
 	/**
 	 * Stops Recognizer, aborting any pending task in the queue. Queue is cleared uppon stopping.
+	 * Doing so will deinitialize the Recognizer
 	 *
 	 * @throws InterruptedException
 	 */
@@ -231,6 +270,7 @@ public class Recognizer implements Runnable {
 		if (!isRunning) return;
 
 		isRunning = false;
+		isInitialized = false;
 		thread.join();
 	}
 
@@ -239,7 +279,11 @@ public class Recognizer implements Runnable {
 
 		while (isRunning) {
 			try {
-				Recognize(targets.take(), recognitionSettings);
+				RecognitionTarget target = targets.poll(1000, TimeUnit.MILLISECONDS);
+				if (target != null) {
+					Recognize(target, recognitionSettings);
+					CleanWorkingDirectory();
+				}
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			} catch (RecognizerException e) {
@@ -258,7 +302,7 @@ public class Recognizer implements Runnable {
 
 		// Set up debug output
 		OutputStreamWriter debugWriter = null;
-		if (debugOutputDirectory != null) {
+		if (debugOutput) {
 			try {
 				debugWriter = new OutputStreamWriter(new FileOutputStream(new File(debugOutputDirectory, target.getId() + ".txt")));
 			} catch (IOException e) {
@@ -270,16 +314,19 @@ public class Recognizer implements Runnable {
 		DocumentType documentType = null;
 		try {
 			documentType = GetDocumentType(target);
+			if (documentType == null) {
+				target.getEventListener().RecognitionFinished(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(documentType).getEvent());
+				return;
+			}
 		} catch (RecognizerException e) {
 			target.getEventListener().RecognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId(), e).getEvent());
 			throw e;
 		}
-		if (documentType == null) {
-			target.getEventListener().RecognitionFinished(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(documentType).getEvent());
-		}
 
 		// Do recognition
 		ArrayList<RecognitionResult> recognitionResults = new ArrayList<>(recognitionSettings.length);
+		ArrayList<File> images = Helper.GetImagesFromFile(target.getFile());
+
 		for (int i = 0; i < recognitionSettings.length; i++) {
 			RecognitionResult result = new RecognitionResult(recognitionSettings[i]);
 			recognitionResults.add(i, result);
@@ -287,11 +334,18 @@ public class Recognizer implements Runnable {
 			DocumentDataBuilder builder = documentType.getBuilder();
 			result.setDocumentDataBuilder(builder);
 
-			try {
-				builder.ProcessImage(target.getFile(), result.settings);
-			} catch (RecognizerException e) {
-				target.getEventListener().RecognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId(), e).getEvent());
-				throw new RecognizerException("Error recognizing image \"" + target.getId() + '\"', e);
+			if (i > 0) try {
+				result.getDocumentDataBuilder().FillEmptyFields(recognitionResults.get(i - 1).getDocumentDataBuilder().getDocumentData());
+			} catch (RecognizerException e) {}
+
+			// Get all images from the file (pages of PDF or the file itself if it's single image file)
+			for (File imageFile : images) {
+				try {
+					builder.ProcessImage(imageFile, result.settings);
+				} catch (RecognizerException e) {
+					target.getEventListener().RecognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId(), e).getEvent());
+					throw new RecognizerException("Error recognizing image \"" + target.getId() + '\"', e);
+				}
 			}
 
 			// Debug output
@@ -308,10 +362,6 @@ public class Recognizer implements Runnable {
 					e.printStackTrace();
 				}
 			}
-
-			if (i > 0) try {
-				result.getDocumentDataBuilder().FillEmptyFields(recognitionResults.get(i - 1).getDocumentDataBuilder().getDocumentData());
-			} catch (RecognizerException e) {}
 
 			if (result.getDocumentDataBuilder().getCompleteness() >= result.getSettings().getPassingCompliteness())
 				break;
@@ -346,7 +396,7 @@ public class Recognizer implements Runnable {
 		}
 
 		for (DocumentType type : DocumentType.values()) {
-			float match = type.MatchText(hOCRText.text());
+			float match = type.MatchText(Helper.GetProperTextFromJSoupDoc(hOCRText));
 			if (match > bestMatch) {
 				documentType = type;
 				bestMatch = match;
@@ -354,6 +404,13 @@ public class Recognizer implements Runnable {
 		}
 
 		return documentType;
+	}
+
+	private void CleanWorkingDirectory() {
+
+		for (File file : workingImagesDirectory.listFiles()) {
+			file.delete();
+		}
 	}
 
 	private class RecognitionResult {
@@ -383,12 +440,7 @@ public class Recognizer implements Runnable {
 		public void sethOCR(Document hOCR) {
 
 			this.hOCR = hOCR;
-
-			StringBuilder stringBuilder = new StringBuilder();
-			for (Element ocr_par : hOCR.getElementsByClass("ocr_line")) {
-				stringBuilder.append(ocr_par.text() + '\n');
-			}
-			rawText = stringBuilder.toString();
+			rawText = Helper.GetProperTextFromJSoupDoc(hOCR);
 		}
 		public DocumentDataBuilder getDocumentDataBuilder() {
 
