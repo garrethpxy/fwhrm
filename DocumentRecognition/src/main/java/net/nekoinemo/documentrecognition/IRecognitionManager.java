@@ -6,7 +6,8 @@ import net.nekoinemo.documentrecognition.event.RecognitionResultEventListener;
 import java.io.File;
 
 /**
- * Created by krdm on 27.03.2015.
+ * Main recognition process class. Operates as a singleton on its own thread.
+ * Responsible for the managing the recognition process through keeping a queue of recognition targets and notifying the corresponding event listeners about target being processed.
  */
 public interface IRecognitionManager extends Runnable {
 
@@ -50,7 +51,6 @@ public interface IRecognitionManager extends Runnable {
 	 * @throws net.nekoinemo.documentrecognition.RecognitionManagerException
 	 */
 	void init(boolean testRecognition) throws RecognitionManagerException;
-	boolean isDebugOutput();
 	/**
 	 * Returns the current state of the RecognitionManager
 	 *

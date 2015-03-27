@@ -18,8 +18,10 @@ import java.util.concurrent.TimeUnit;
 public class RecognitionManager implements IRecognitionManager {
 
 	public static final RecognitionManager INSTANCE;
+
 	private static final FileFilter SUPPORTED_FILES_FILTER = new FileFilter() {
 
+		// List of all supported extensions. Only files with those will be added by PushAllFiles()
 		private final ArrayList SUPPORTED_EXTENSIONS = new ArrayList() {{
 			add(".pdf");
 			add(".jpg");
@@ -34,12 +36,9 @@ public class RecognitionManager implements IRecognitionManager {
 
 			if (!pathname.isFile()) return false;
 
-			String extension = pathname.getName().substring(pathname.getName().toLowerCase().lastIndexOf('.'));
-			return SUPPORTED_EXTENSIONS.contains(extension);
+			return SUPPORTED_EXTENSIONS.contains(FilenameUtils.getExtension(pathname.getName()));
 		}
 	};
-
-	private static RecognitionManager instance = null;
 
 	private RecognitionManagerEventListener eventListener = null;
 	private Thread thread;
@@ -55,9 +54,8 @@ public class RecognitionManager implements IRecognitionManager {
 
 	private boolean debugOutput = false;
 	private boolean isInitialized = false;
-
 	static {
-		INSTANCE = getInstance();
+		INSTANCE = new RecognitionManager();
 	}
 
 	/**
@@ -67,8 +65,7 @@ public class RecognitionManager implements IRecognitionManager {
 	 */
 	public static RecognitionManager getInstance() {
 
-		if (instance == null) instance = new RecognitionManager();
-		return instance;
+		return INSTANCE;
 	}
 
 	private RecognitionManager() {
@@ -100,14 +97,20 @@ public class RecognitionManager implements IRecognitionManager {
 			} catch (SecurityException e) {
 				throw new RecognitionManagerException("Can't create temporary directory", e);
 			}
+
+			// Create workingImages folder
 			workingImagesDirectory = new File(temporaryDirectoriesLocation, "workingImages");
 			workingImagesDirectory.mkdir();
 
-			// Debug folder
+			// Create debug folder (if debugOutput is used)
 			if (debugOutput) {
 				debugOutputDirectory = new File(temporaryDirectoriesLocation, "debug");
 				debugOutputDirectory.mkdir();
 			}
+
+			// Use default settings if none are specified
+			if (recognitionSettings == null || recognitionSettings.length == 0)
+				recognitionSettings = RecognitionSettings.DEFAULT;
 
 			// Recognition test
 			BufferedImage testImage;
@@ -121,12 +124,16 @@ public class RecognitionManager implements IRecognitionManager {
 			tesseract.setPageSegMode(TessAPI.TessPageSegMode.PSM_SINGLE_WORD);
 			tesseract.setHocr(false);
 
+			// Test recognition with the provided test image this will cause Tesseract to throw an exception if incorrect settings were set
 			String result;
 			try {
 				result = tesseract.doOCR(testImage);
 			} catch (TesseractException e) {
 				throw new RecognitionManagerException("Can't do recognition on a test image. Check if tessdata path is specified correctly and proper language files are present", e);
 			}
+
+			// This will check if whatever Tesseract returned matches the text image contained.
+			// If it didn't then there's probably something seriously wrong with either Tesseract installed ot tessdata provided
 			if (testRecognition && !result.trim().equalsIgnoreCase("test"))
 				throw new RecognitionManagerException("Tesseract failed to recognize test image. Correct language/trained data may be missing from tessdata folder. Continuing with current settings may yeld low quality recognition results.");
 		} catch (RecognitionManagerException e) {
@@ -134,7 +141,7 @@ public class RecognitionManager implements IRecognitionManager {
 			throw e;
 		}
 
-		tesseract.setHocr(true);
+		tesseract.setHocr(true); // Sets the output format to the hOCR (see http://en.wikipedia.org/wiki/HOCR)
 		isInitialized = true;
 	}
 
@@ -176,7 +183,6 @@ public class RecognitionManager implements IRecognitionManager {
 
 		tesseract.setDatapath(value);
 	}
-	@Override
 	public boolean isDebugOutput() {
 
 		return debugOutput;
@@ -250,7 +256,7 @@ public class RecognitionManager implements IRecognitionManager {
 		}
 
 		isRunning = true;
-		thread = new Thread(this, "RecognitionManager thread");
+		thread = new Thread(this, "RecognitionManager thread"); // Once stopped thread can't be restarted so new instance is created
 		thread.start();
 	}
 	@Override
@@ -259,38 +265,44 @@ public class RecognitionManager implements IRecognitionManager {
 		if (!isRunning) return;
 
 		isRunning = false;
-		isInitialized = false;
+		isInitialized = false; // init() checks if settings are valid so this forces init() to be performed before each start()
 		thread.join();
 	}
 
 	@Override
 	public void run() {
 
+		// Main loop. Will run until stop() is called
 		while (isRunning) {
 			RecognitionTarget target = null;
 			try {
-				target = targets.poll(1000, TimeUnit.MILLISECONDS);
+				target = targets.poll(1000, TimeUnit.MILLISECONDS); // Waits 1s for target to appear then moves to the next iteration
 			} catch (InterruptedException e) {}
 
-			try {
-				if (target != null) {
+			if (target != null) {
+				try {
 					Recognize(target, recognitionSettings);
-					CleanWorkingDirectory();
+					CleanWorkingDirectory(); // Clears the "workingImages" folder in the temporary directory
+				} catch (RecognitionManagerException e) {
+					fireRecognitionException("Failed to recognize file", target.getFile().getAbsolutePath(), e);
 				}
-			} catch (RecognitionManagerException e) {
-				fireRecognitionException("Failed to recognize file", target.getFile().getAbsolutePath(), e);
 			}
 		}
 
+		// Notify all remaining targets that recognition was aborted
 		if (targets.size() > 0) {
-			targets.forEach(target -> target.getEventListener().RecognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(new RecognitionManagerException("Recognition process was aborted")).getEvent()));
+			targets.forEach(target -> {
+
+				RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(new RecognitionManagerException("Recognition process was aborted")).getEvent();
+				target.getEventListener().RecognitionError(event);
+			});
 			targets.clear();
 		}
 	}
 
 	private void Recognize(RecognitionTarget target, RecognitionSettings[] recognitionSettings) throws RecognitionManagerException {
 
-		// Set up debug output
+		// Set up debug output file
 		OutputStreamWriter debugWriter = null;
 		if (debugOutput) {
 			File debugFile = new File(debugOutputDirectory, target.getId() + ".txt");
@@ -306,11 +318,13 @@ public class RecognitionManager implements IRecognitionManager {
 		try {
 			documentType = GetDocumentType(target);
 			if (documentType == null) {
-				target.getEventListener().RecognitionFinished(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(documentType).getEvent());
+				RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(null).getEvent();
+				target.getEventListener().RecognitionFinished(event);
 				return;
 			}
 		} catch (RecognitionManagerException e) {
-			target.getEventListener().RecognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(e).getEvent());
+			RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(e).getEvent();
+			target.getEventListener().RecognitionError(event);
 			throw e;
 		}
 
@@ -324,7 +338,7 @@ public class RecognitionManager implements IRecognitionManager {
 			throw exception;
 		}
 
-		// Do recognition
+		// Do recognition with each set of settings (or until desired data completeness achieved)
 		ArrayList<RecognitionResult> recognitionResults = new ArrayList<>(recognitionSettings.length);
 		for (int i = 0; i < recognitionSettings.length; i++) {
 			RecognitionResult result = new RecognitionResult(recognitionSettings[i]);
@@ -334,10 +348,11 @@ public class RecognitionManager implements IRecognitionManager {
 			result.setDocumentDataBuilder(builder);
 
 			if (i > 0) try {
+				// Copy results from the previous iteration (in case in this one nothing will be recognized)
 				result.getDocumentDataBuilder().FillEmptyFields(recognitionResults.get(i - 1).getDocumentDataBuilder().getDocumentData());
 			} catch (RecognitionManagerException e) {}
 
-			// Get all images from the file (pages of PDF or the file itself if it's single image file)
+			// Run recognition for each page
 			for (File imageFile : images) {
 				try {
 					builder.ProcessImage(imageFile, result.settings);
@@ -347,7 +362,7 @@ public class RecognitionManager implements IRecognitionManager {
 				}
 			}
 
-			// Debug output
+			// Output debug recognition data
 			if (debugWriter != null) {
 				try {
 					debugWriter.write("iteration: " + i + "\tcompleteness: " + result.getDocumentDataBuilder().getCompleteness() + '\n');
@@ -362,14 +377,17 @@ public class RecognitionManager implements IRecognitionManager {
 				}
 			}
 
-			if (result.getDocumentDataBuilder().getCompleteness() >= result.getSettings().getPassingCompliteness())
+			if (result.getDocumentDataBuilder().getCompleteness() >= result.getSettings().getPassingCompliteness()) // If target completeness was achieved - stop
 				break;
 		}
 
 		// Send recognition results
+		// Get DocumentData from the builder in the last result
 		IDocumentData documentData = recognitionResults.get(recognitionResults.size() - 1).getDocumentDataBuilder().getDocumentData();
-		RecognitionResultEvent.RecognitionResultEventBuilder eventBuilder = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(documentType).setDocumentData(documentData).setRecognitionPercentage(documentData.getCompleteness());
-		target.getEventListener().RecognitionFinished(eventBuilder.getEvent());
+		// Get event to be sent out.
+		// Create new builder with this docID, set recognized type, set recognized data, set data completeness and get event from that builder
+		RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(documentType).setDocumentData(documentData).setRecognitionPercentage(documentData.getCompleteness()).getEvent();
+		target.getEventListener().RecognitionFinished(event);
 	}
 	public String RecognizeFile(File target, Rectangle area, RecognitionSettings recognitionSettings) throws RecognitionManagerException {
 
@@ -390,12 +408,14 @@ public class RecognitionManager implements IRecognitionManager {
 		float bestMatch = 0f;
 
 		try {
+			// Do (fast) recognition with the very basic settings to get all of the text on the image
 			hOCRText = Jsoup.parse(RecognizeFile(target.getFile(), null, new RecognitionSettings(0, RecognitionSettings.ENGINE_MODE_BASIC, RecognitionSettings.PAGESEG_MODE_SINGLE_BLOCK)));
 		} catch (RecognitionManagerException e) {
 			throw new RecognitionManagerException("Error recognizing image \"" + target.getId() + '\"', e);
 		}
 
 		for (DocumentType type : DocumentType.values()) {
+			// Get the chance that recognized text belongs to the document of this type
 			float match = type.MatchText(Helper.GetProperTextFromJSoupDoc(hOCRText));
 			if (match > bestMatch) {
 				documentType = type;
@@ -423,36 +443,37 @@ public class RecognitionManager implements IRecognitionManager {
 		}
 	}
 
-	void fireSystemException(String message, Throwable cause){
+	void fireSystemException(String message, Throwable cause) {
 
-		synchronized (eventListener){
+		synchronized (eventListener) {
 			RecognitionManagerEvent event = new RecognitionManagerEvent.RecognitionManagerEventBuilder().setMessage(message).setCause(cause).getEvent();
 
 			if (eventListener != null) eventListener.SystemExceptionOccurred(event);
 		}
 	}
-	void fireRecognitionException(String message, String file, Throwable cause){
+	void fireRecognitionException(String message, String file, Throwable cause) {
 
-		synchronized (eventListener){
+		synchronized (eventListener) {
 			RecognitionManagerEvent event = new RecognitionManagerEvent.RecognitionManagerEventBuilder().setMessage(message).setFileCause(file).setCause(cause).getEvent();
 
 			if (eventListener != null) eventListener.RecognitionExceptionOccurred(event);
 		}
 	}
-	void fireMiscException(String message, Throwable cause){
+	void fireMiscException(String message, Throwable cause) {
 
-		synchronized (eventListener){
+		synchronized (eventListener) {
 			RecognitionManagerEvent event = new RecognitionManagerEvent.RecognitionManagerEventBuilder().setMessage(message).setCause(cause).getEvent();
 
 			if (eventListener != null) eventListener.MiscellaneousExceptionOccurred(event);
 		}
 	}
 
+	/**
+	 * Class contains result of one recognition iteration along with the used settings
+	 */
 	private class RecognitionResult {
 
 		private RecognitionSettings settings;
-		private Document hOCR = null;
-		private String rawText = null;
 		private IDocumentDataBuilder documentDataBuilder = null;
 
 		public RecognitionResult(RecognitionSettings settings) {
@@ -464,19 +485,6 @@ public class RecognitionManager implements IRecognitionManager {
 
 			return settings;
 		}
-		public String getRawText() {
-
-			return rawText;
-		}
-		public Document gethOCR() {
-
-			return hOCR;
-		}
-		public void sethOCR(Document hOCR) {
-
-			this.hOCR = hOCR;
-			rawText = Helper.GetProperTextFromJSoupDoc(hOCR);
-		}
 		public IDocumentDataBuilder getDocumentDataBuilder() {
 
 			return documentDataBuilder;
@@ -486,6 +494,9 @@ public class RecognitionManager implements IRecognitionManager {
 			this.documentDataBuilder = documentDataBuilder;
 		}
 	}
+	/**
+	 * Structure type class that encapsulates the file to be processed
+	 */
 	private class RecognitionTarget {
 
 		private final String id;
