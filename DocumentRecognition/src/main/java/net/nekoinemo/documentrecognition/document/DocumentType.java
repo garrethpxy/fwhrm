@@ -37,7 +37,7 @@ public enum DocumentType {
 
 		return (((float) result / patterns.size()) * 100);
 	}
-	public DocumentDataBuilder getBuilder() {
+	public IDocumentDataBuilder getBuilder() {
 
 		switch (this) {
 			case MOM:

@@ -1,6 +1,6 @@
 package net.nekoinemo.documentrecognition.document;
 
-public class MOMData implements DocumentData {
+public class MOMData implements IDocumentData {
 
 	protected static final String[] DATA_FIELDS = new String[]{"date_of_birth", "employer_name", "employer_telephone", "employer_uen", "full_name", "nationality", "nric_or_fin_number", "occupation", "passport_number", "work_permit_number"};
 

@@ -38,12 +38,12 @@ public class Helper {
 			File[] extractedFiles = PdfUtilities.convertPdf2Png(file);
 			for (int i = 0; i < extractedFiles.length; i++) {
 				File fileSrc = extractedFiles[i];
-				File fileDst = new File(Recognizer.getInstance().getWorkingImagesDirectory(), new StringBuilder(FilenameUtils.removeExtension(file.getName())).append('_').append(i).append(".png").toString());
+				File fileDst = new File(RecognitionManager.getInstance().getWorkingImagesDirectory(), new StringBuilder(FilenameUtils.removeExtension(file.getName())).append('_').append(i).append(".png").toString());
 				FileUtils.moveFile(fileSrc, fileDst);
 				result.add(fileDst);
 			}
 		} else {
-			File fileDst = new File(Recognizer.getInstance().getWorkingImagesDirectory(), file.getName());
+			File fileDst = new File(RecognitionManager.getInstance().getWorkingImagesDirectory(), file.getName());
 			FileUtils.copyFile(file, fileDst);
 			result.add(fileDst);
 		}

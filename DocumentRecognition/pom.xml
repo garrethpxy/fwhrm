@@ -25,6 +25,12 @@
             <artifactId>tess4j</artifactId>
             <version>1.4.1</version>
             <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.sun.jna</groupId>
+                    <artifactId>jna</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

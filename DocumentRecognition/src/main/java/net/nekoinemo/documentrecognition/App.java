@@ -1,8 +1,7 @@
 package net.nekoinemo.documentrecognition;
 
-import net.nekoinemo.documentrecognition.document.DocumentData;
-import net.nekoinemo.documentrecognition.event.RecognitionResultEvent;
-import net.nekoinemo.documentrecognition.event.RecognitionResultEventListener;
+import net.nekoinemo.documentrecognition.document.IDocumentData;
+import net.nekoinemo.documentrecognition.event.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -24,9 +23,25 @@ public class App {
 			return;
 		}
 
-		ArrayList<DocumentData> results = new ArrayList<>();
+		ArrayList<IDocumentData> results = new ArrayList<>();
 
-		RecognitionResultEventListener eventListener = new RecognitionResultEventListener() {
+		RecognitionManagerEventListener recognitionManagerEventListener = new RecognitionManagerEventListener() {
+			@Override
+			public void SystemExceptionOccurred(RecognitionManagerEvent event) {
+				System.out.println(new StringBuilder("[System] Exception occurred in RecognitionManager: ").append(event.getMessage()).append('\n').append("Reason: ").append(event.getCause().getMessage()).toString());
+				System.out.flush();
+			}
+			@Override
+			public void RecognitionExceptionOccurred(RecognitionManagerEvent event) {
+				// No reason to use it in this example
+			}
+			@Override
+			public void MiscellaneousExceptionOccurred(RecognitionManagerEvent event) {
+				System.out.println(new StringBuilder("[Misc] Exception occurred in RecognitionManager: ").append(event.getMessage()).append('\n').append("Reason: ").append(event.getCause().getMessage()).toString());
+				System.out.flush();
+			}
+		};
+		RecognitionResultEventListener recognitionResultEventListener = new RecognitionResultEventListener() {
 			@Override
 			public void RecognitionFinished(RecognitionResultEvent event) {
 
@@ -47,26 +62,27 @@ public class App {
 			}
 		};
 
-		Recognizer recognizer = Recognizer.getInstance();
+		RecognitionManager recognitionManager = RecognitionManager.getInstance();
 		try {
-			// Initialization of the Recognizer. Need to be done once in the initialization of the system
-			recognizer.setTessDataPath(args[0]);
-			recognizer.setRecognitionSettings(RecognitionSettings.DEFAULT);
-			recognizer.setTemporaryDirectoriesLocation(new File(args[1]));
-			recognizer.setDebugOutput(true);
-			recognizer.Init();
+			// Initialization of the RecognitionManager. Need to be done once in the initialization of the system
+			recognitionManager.setEventListener(recognitionManagerEventListener);
+			recognitionManager.setTessDataPath(args[0]);
+			recognitionManager.setRecognitionSettings(RecognitionSettings.DEFAULT);
+			recognitionManager.setTemporaryDirectoriesLocation(new File(args[1]));
+			recognitionManager.setDebugOutput(true);
+			recognitionManager.init();
 
-			// Puts recognizer in a standby mode, awaiting for the files to process
-			recognizer.Start();
+			// Puts recognitionManager in a standby mode, awaiting for the files to process
+			recognitionManager.start();
 
-			recognizer.PushAllFiles(new File(args[1]), eventListener); // All *supported* files in folder. Supported file extensions are defined in the Recognizer class
-			int queueSize = recognizer.getQueueSize();
-			//recognizer.PushFile(new File(args[1]), eventListener); // Single file
-			//while (recognizer.getQueueSize() > 0) Thread.sleep(1000);
+			recognitionManager.PushAllFiles(new File(args[1]), recognitionResultEventListener); // All *supported* files in folder. Supported file extensions are defined in the RecognitionManager class
+			int queueSize = recognitionManager.getQueueSize();
+			//recognitionManager.PushFile(new File(args[1]), recognitionResultEventListener); // Single file
+			//while (recognitionManager.getQueueSize() > 0) Thread.sleep(1000);
 			while (results.size()<queueSize) Thread.sleep(1000);
 
-			// Stops the recognizer, aborting any queued tasks. Should be done on the system shutdown
-			recognizer.Stop();
+			// Stops the recognitionManager, aborting any queued tasks. Should be done on the system shutdown
+			recognitionManager.stop();
 
 			results.forEach(o -> System.out.println(o));
 		} catch (Exception e) {

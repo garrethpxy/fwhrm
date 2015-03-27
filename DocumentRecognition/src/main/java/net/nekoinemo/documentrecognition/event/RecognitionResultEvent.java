@@ -1,7 +1,7 @@
 package net.nekoinemo.documentrecognition.event;
 
-import net.nekoinemo.documentrecognition.Recognizer;
-import net.nekoinemo.documentrecognition.document.DocumentData;
+import net.nekoinemo.documentrecognition.RecognitionManager;
+import net.nekoinemo.documentrecognition.document.IDocumentData;
 import net.nekoinemo.documentrecognition.document.DocumentType;
 
 import java.util.EventObject;
@@ -9,14 +9,14 @@ import java.util.EventObject;
 public class RecognitionResultEvent extends EventObject {
 
 	private final String documentID;
-	private DocumentData documentData = null;
+	private IDocumentData documentData = null;
 	private DocumentType documentType = null;
 	private int recognitionPercentage = 0;
 	private Throwable cause = null;
 
 	private RecognitionResultEvent(String documentID) {
 
-		super(Recognizer.getInstance());
+		super(RecognitionManager.getInstance());
 
 		this.documentID = documentID;
 	}
@@ -43,9 +43,9 @@ public class RecognitionResultEvent extends EventObject {
 	 * Returns the recognized data of the document.
 	 * To access the fields result should be casted to the appropriate class based on type which can be obtained via event.getDocumentType().
 	 *
-	 * @return Class implementing the DocumentData interface.
+	 * @return Class implementing the IDocumentData interface.
 	 */
-	public DocumentData getDocumentData() {
+	public IDocumentData getDocumentData() {
 
 		return documentData;
 	}
@@ -76,18 +76,13 @@ public class RecognitionResultEvent extends EventObject {
 
 			event = new RecognitionResultEvent(documentID);
 		}
-		public RecognitionResultEventBuilder(String documentID, Throwable cause) {
-
-			event = new RecognitionResultEvent(documentID);
-			event.cause = cause;
-		}
 
 		public RecognitionResultEvent getEvent(){
 
 			return event;
 		}
 
-		public RecognitionResultEventBuilder setDocumentData(DocumentData documentData) {
+		public RecognitionResultEventBuilder setDocumentData(IDocumentData documentData) {
 
 			event.documentData = documentData;
 			return this;

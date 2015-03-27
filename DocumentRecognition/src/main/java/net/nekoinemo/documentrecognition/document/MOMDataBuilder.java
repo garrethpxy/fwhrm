@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class MOMDataBuilder implements DocumentDataBuilder {
+public class MOMDataBuilder implements IDocumentDataBuilder {
 
 	private static ArrayList<Pattern> patterns_date_of_birth = new ArrayList<>();
 	private static ArrayList<Pattern> patterns_employer_name = new ArrayList<>();
@@ -60,15 +60,15 @@ public class MOMDataBuilder implements DocumentDataBuilder {
 	}
 
 	@Override
-	public DocumentData getDocumentData() {
+	public IDocumentData getDocumentData() {
 
 		return momData;
 	}
 	@Override
-	public void ProcessImage(File target, RecognitionSettings settings) throws RecognizerException {
+	public void ProcessImage(File target, RecognitionSettings settings) throws RecognitionManagerException {
 
-		final Recognizer recognizer = Recognizer.getInstance();
-		final Document document = Jsoup.parse(recognizer.RecognizeFile(target, null, settings));
+		final RecognitionManager recognitionManager = RecognitionManager.getInstance();
+		final Document document = Jsoup.parse(recognitionManager.RecognizeFile(target, null, settings));
 		final String rawText = Helper.GetProperTextFromJSoupDoc(document);
 
 		Matcher matcher;
@@ -149,9 +149,9 @@ public class MOMDataBuilder implements DocumentDataBuilder {
 		return momData.getCompleteness();
 	}
 	@Override
-	public void FillEmptyFields(DocumentData value) throws RecognizerException {
+	public void FillEmptyFields(IDocumentData value) throws RecognitionManagerException {
 
-		if (!value.getClass().equals(MOMData.class)) throw new RecognizerException("Passed subclass of DocumentData doesn't match this subclass");
+		if (!value.getClass().equals(MOMData.class)) throw new RecognitionManagerException("Passed subclass of DocumentData doesn't match this subclass");
 
 		for (String fieldName : momData.DATA_FIELDS) {
 			try {
@@ -165,9 +165,9 @@ public class MOMDataBuilder implements DocumentDataBuilder {
 		}
 	}
 	@Override
-	public void FillFields(DocumentData value) throws RecognizerException {
+	public void FillFields(IDocumentData value) throws RecognitionManagerException {
 
-		if (!value.getClass().equals(MOMData.class)) throw new RecognizerException("Passed subclass of DocumentData doesn't match this subclass");
+		if (!value.getClass().equals(MOMData.class)) throw new RecognitionManagerException("Passed subclass of DocumentData doesn't match this subclass");
 
 		for (String fieldName : momData.DATA_FIELDS) {
 			try {

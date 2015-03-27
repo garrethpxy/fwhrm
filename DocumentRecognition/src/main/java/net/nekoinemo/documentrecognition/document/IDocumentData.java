@@ -1,6 +1,6 @@
 package net.nekoinemo.documentrecognition.document;
 
-public interface DocumentData {
+public interface IDocumentData {
 
 	/**
 	 * Returns the type of the document.

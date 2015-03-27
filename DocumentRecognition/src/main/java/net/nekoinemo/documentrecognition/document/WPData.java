@@ -1,6 +1,6 @@
 package net.nekoinemo.documentrecognition.document;
 
-public class WPData implements DocumentData {
+public class WPData implements IDocumentData {
 
 	protected static final String[] DATA_FIELDS = new String[]{ "date_of_birth", "employer_name", "full_name", "nationality", "fin_number", "work_permit_number", "work_permit_category", "work_permit_expiration_date" };
 
