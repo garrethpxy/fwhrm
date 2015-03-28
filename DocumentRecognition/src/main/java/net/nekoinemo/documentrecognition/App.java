@@ -28,16 +28,18 @@ public class App {
 		// Event listener for the RecognitionManager itself. Will notify about exceptions occurred
 		RecognitionManagerEventListener recognitionManagerEventListener = new RecognitionManagerEventListener() {
 			@Override
-			public void SystemExceptionOccurred(RecognitionManagerEvent event) {
+			public void systemExceptionOccurred(RecognitionManagerEvent event) {
+
 				System.out.println(new StringBuilder("[System] Exception occurred in RecognitionManager: ").append(event.getMessage()).append('\n').append("Reason: ").append(event.getCause().getMessage()).toString());
 				System.out.flush();
 			}
 			@Override
-			public void RecognitionExceptionOccurred(RecognitionManagerEvent event) {
+			public void recognitionExceptionOccurred(RecognitionManagerEvent event) {
 				// No reason to use it in this example
 			}
 			@Override
-			public void MiscellaneousExceptionOccurred(RecognitionManagerEvent event) {
+			public void miscellaneousExceptionOccurred(RecognitionManagerEvent event) {
+
 				System.out.println(new StringBuilder("[Misc] Exception occurred in RecognitionManager: ").append(event.getMessage()).append('\n').append("Reason: ").append(event.getCause().getMessage()).toString());
 				System.out.flush();
 			}
@@ -45,18 +47,18 @@ public class App {
 		// Event listener for the batch of files pushed to the RecognitionManager
 		RecognitionResultEventListener recognitionResultEventListener = new RecognitionResultEventListener() {
 			@Override
-			public void RecognitionFinished(RecognitionResultEvent event) {
+			public void recognitionFinished(RecognitionResultEvent event) {
 
 				System.out.println(event.getDocumentID() + '\t' + event.getRecognitionPercentage() + "%\t" + event.getDocumentType());
-//				if (event.getDocumentType() == null) System.out.println("Document type wasn't recognized!");
-//				else System.out.println(event.getDocumentData().toString());
-				synchronized (results){
+				//				if (event.getDocumentType() == null) System.out.println("Document type wasn't recognized!");
+				//				else System.out.println(event.getDocumentData().toString());
+				synchronized (results) {
 					results.put(event.getDocumentID(), event.getDocumentData());
 				}
 				System.out.flush();
 			}
 			@Override
-			public void RecognitionError(RecognitionResultEvent event) {
+			public void recognitionError(RecognitionResultEvent event) {
 
 				System.out.println("[Error] " + event.getDocumentID());
 				event.getCause().printStackTrace();
@@ -77,11 +79,11 @@ public class App {
 			recognitionManager.init(); // Initializes RecognitionManager (will check if everything is ready and works correctly)
 			recognitionManager.start(); // Puts recognitionManager in a standby mode, awaiting for the files to process
 
-			recognitionManager.PushAllFiles(new File(args[1]), recognitionResultEventListener); // All *supported* files in folder. Supported file extensions are defined in the RecognitionManager class
+			recognitionManager.pushAllFiles(new File(args[1]), recognitionResultEventListener); // All *supported* files in folder. Supported file extensions are defined in the RecognitionManager class
 
 			// Wait till all pushed files are processed
 			int queueSize = recognitionManager.getQueueSize();
-			while (results.size()<queueSize) Thread.sleep(1000);
+			while (results.size() < queueSize) Thread.sleep(1000);
 
 			recognitionManager.stop(); // Stops the recognitionManager, aborting any queued tasks. Should be done on the system shutdown
 

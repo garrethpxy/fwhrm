@@ -4,7 +4,7 @@ import java.util.EventListener;
 
 public interface RecognitionManagerEventListener extends EventListener {
 
-	void SystemExceptionOccurred(RecognitionManagerEvent event);
-	void RecognitionExceptionOccurred(RecognitionManagerEvent event);
-	void MiscellaneousExceptionOccurred(RecognitionManagerEvent event);
+	void systemExceptionOccurred(RecognitionManagerEvent event);
+	void recognitionExceptionOccurred(RecognitionManagerEvent event);
+	void miscellaneousExceptionOccurred(RecognitionManagerEvent event);
 }

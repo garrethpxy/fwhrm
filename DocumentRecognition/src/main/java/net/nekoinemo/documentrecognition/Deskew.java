@@ -66,7 +66,7 @@ class Deskew {
 
 		return bi;
 	}
-	static double GetSkewAngle(BufferedImage image) {
+	static double getSkewAngle(BufferedImage image) {
 
 		final double skewRadians;
 		BufferedImage black = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
@@ -89,24 +89,6 @@ class Deskew {
 			retval <<= 1;
 		}
 		return retval;
-	}
-	private static class BitUtils {
-
-		static int[] bitcount_ = new int[256];
-		static int[] invbits_ = new int[256];
-		static {
-			for (int i = 0; i < 256; i++) {
-				int j = i, cnt = 0;
-				do {
-					cnt += j & 1;
-				} while ((j >>= 1) != 0);
-				int x = (i << 4) | (i >> 4);
-				x = ((x & 0xCC) >> 2) | ((x & 0x33) << 2);
-				x = ((x & 0xAA) >> 1) | ((x & 0x55) << 1);
-				bitcount_[i] = cnt;
-				invbits_[i] = x;
-			}
-		}
 	}
 	private static double findSkew(final BufferedImage img) {
 
@@ -224,6 +206,25 @@ class Deskew {
 				acc += diff * diff;
 			}
 			sharpness[w2 - 1 + sign * column] = acc;
+		}
+	}
+
+	private static class BitUtils {
+
+		static int[] bitcount_ = new int[256];
+		static int[] invbits_ = new int[256];
+		static {
+			for (int i = 0; i < 256; i++) {
+				int j = i, cnt = 0;
+				do {
+					cnt += j & 1;
+				} while ((j >>= 1) != 0);
+				int x = (i << 4) | (i >> 4);
+				x = ((x & 0xCC) >> 2) | ((x & 0x33) << 2);
+				x = ((x & 0xAA) >> 1) | ((x & 0x55) << 1);
+				bitcount_[i] = cnt;
+				invbits_[i] = x;
+			}
 		}
 	}
 }

@@ -21,29 +21,13 @@ public class RecognitionSettings {
 	private int passingCompleteness;
 	private int pageSegMode;
 	private int engineMode;
-
 	static {
 
-		DEFAULT = new RecognitionSettings[]{
-				new RecognitionSettings(90, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(90, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK)
-		};
-		SLOPPY = new RecognitionSettings[]{
-				new RecognitionSettings(75, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(75, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK)
-		};
-		FAST = new RecognitionSettings[]{
-				new RecognitionSettings(80, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK)
-		};
-		PERFECTIONIST = new RecognitionSettings[]{
-				new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SPARSE_TEXT),
-				new RecognitionSettings(100, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK),
-				new RecognitionSettings(100, ENGINE_MODE_FULL, PAGESEG_MODE_SPARSE_TEXT)
-		};
-		WHATEVER = new RecognitionSettings[]{
-				new RecognitionSettings(0, ENGINE_MODE_BASIC, PAGESEG_MODE_AUTO)
-		};
+		DEFAULT = new RecognitionSettings[]{ new RecognitionSettings(90, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK), new RecognitionSettings(90, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK) };
+		SLOPPY = new RecognitionSettings[]{ new RecognitionSettings(75, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK), new RecognitionSettings(75, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK) };
+		FAST = new RecognitionSettings[]{ new RecognitionSettings(80, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK) };
+		PERFECTIONIST = new RecognitionSettings[]{ new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SINGLE_BLOCK), new RecognitionSettings(100, ENGINE_MODE_BASIC, PAGESEG_MODE_SPARSE_TEXT), new RecognitionSettings(100, ENGINE_MODE_FULL, PAGESEG_MODE_SINGLE_BLOCK), new RecognitionSettings(100, ENGINE_MODE_FULL, PAGESEG_MODE_SPARSE_TEXT) };
+		WHATEVER = new RecognitionSettings[]{ new RecognitionSettings(0, ENGINE_MODE_BASIC, PAGESEG_MODE_AUTO) };
 	}
 
 	public RecognitionSettings(int passingCompleteness, int engineMode, int pageSegMode) {

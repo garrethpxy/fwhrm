@@ -20,7 +20,7 @@ public interface IRecognitionManager extends Runnable {
 	 *
 	 * @throws InterruptedException
 	 */
-	void PushAllFiles(File directory, RecognitionResultEventListener eventListener) throws InterruptedException;
+	void pushAllFiles(File directory, RecognitionResultEventListener eventListener) throws InterruptedException;
 	/**
 	 * Puts a file in the recognition queue. File type is not checked (can cause and exception if unsupported file is provided).
 	 *
@@ -29,7 +29,7 @@ public interface IRecognitionManager extends Runnable {
 	 *
 	 * @throws InterruptedException
 	 */
-	void PushFile(File file, RecognitionResultEventListener eventListener) throws InterruptedException;
+	void pushFile(File file, RecognitionResultEventListener eventListener) throws InterruptedException;
 	/**
 	 * Get the size of the current recognition queue.
 	 *

@@ -9,11 +9,11 @@ public interface RecognitionResultEventListener extends EventListener {
 	 *
 	 * @param event Event, containing all of the recognized data.
 	 */
-	void RecognitionFinished(RecognitionResultEvent event);
+	void recognitionFinished(RecognitionResultEvent event);
 	/**
 	 * Fired upon the error in the recognition process.
 	 *
 	 * @param event Event, containing the exception cause.
 	 */
-	void RecognitionError(RecognitionResultEvent event);
+	void recognitionError(RecognitionResultEvent event);
 }

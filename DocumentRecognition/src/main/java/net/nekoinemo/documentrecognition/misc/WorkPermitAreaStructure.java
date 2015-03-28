@@ -43,25 +43,25 @@ public class WorkPermitAreaStructure {
 		int h = (int) (titleBBox.height * MODIFIER_MAIN_HEIGHT);
 
 		// Make sure that bounding box fits inside the image
-		mainArea = Helper.CropToSize(new Rectangle(x, y, w, h), imageArea);
+		mainArea = Helper.cropToRectangle(new Rectangle(x, y, w, h), imageArea);
 
 		x = mainArea.x + (int) (mainArea.width * MODIFIER_NAME_X);
 		y = mainArea.y + (int) (mainArea.height * MODIFIER_NAME_Y);
 		w = (int) (mainArea.width * MODIFIER_NAME_WIDTH);
 		h = (int) (mainArea.height * MODIFIER_NAME_HEIGHT);
-		name = Helper.CropToSize(new Rectangle(x, y, w, h), imageArea);
+		name = Helper.cropToRectangle(new Rectangle(x, y, w, h), imageArea);
 
 		x = mainArea.x + (int) (mainArea.width * MODIFIER_CATEGORY_X);
 		y = mainArea.y + (int) (mainArea.height * MODIFIER_CATEGORY_Y);
 		w = (int) (mainArea.width * MODIFIER_CATEGORY_WIDTH);
 		h = (int) (mainArea.height * MODIFIER_CATEGORY_HEIGHT);
-		category = Helper.CropToSize(new Rectangle(x, y, w, h), imageArea);
+		category = Helper.cropToRectangle(new Rectangle(x, y, w, h), imageArea);
 
 		x = mainArea.x + (int) (mainArea.width * MODIFIER_EMPLOYER_X);
 		y = mainArea.y + (int) (mainArea.height * MODIFIER_EMPLOYER_Y);
 		w = (int) (mainArea.width * MODIFIER_EMPLOYER_WIDTH);
 		h = (int) (mainArea.height * MODIFIER_EMPLOYER_HEIGHT);
-		employer = Helper.CropToSize(new Rectangle(x, y, w, h), imageArea);
+		employer = Helper.cropToRectangle(new Rectangle(x, y, w, h), imageArea);
 	}
 
 	public Rectangle getMainArea() {

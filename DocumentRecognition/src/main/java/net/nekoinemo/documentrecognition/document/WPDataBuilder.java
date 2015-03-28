@@ -41,7 +41,7 @@ public class WPDataBuilder implements IDocumentDataBuilder {
 		return wpData;
 	}
 	@Override
-	public void ProcessImage(File target, RecognitionSettings settings) throws RecognitionManagerException {
+	public void processImage(File target, RecognitionSettings settings) throws RecognitionManagerException {
 
 		BufferedImage image;
 		Document documentWhole = null;
@@ -56,7 +56,7 @@ public class WPDataBuilder implements IDocumentDataBuilder {
 
 		// If bounding boxes still not found - get full text and attempt to find them
 		if (workPermitAreaStructure == null || visitPassAreaStructure == null) {
-			documentWhole = Jsoup.parse(recognitionManager.RecognizeFile(target, null, settings));
+			documentWhole = Jsoup.parse(recognitionManager.recognizeFile(target, null, settings));
 		}
 
 		// WP side
@@ -91,28 +91,28 @@ public class WPDataBuilder implements IDocumentDataBuilder {
 		if (workPermitAreaStructure != null) {
 			BufferedImage wpImage = image.getSubimage(workPermitAreaStructure.getMainArea().x, workPermitAreaStructure.getMainArea().y, workPermitAreaStructure.getMainArea().width, workPermitAreaStructure.getMainArea().height);
 
-			String employer = Helper.GetProperTextFromJSoupDoc(Jsoup.parse(recognitionManager.RecognizeFile(target, workPermitAreaStructure.getEmployer(), settings)));
+			String employer = Helper.getProperTextFromJSoupDoc(Jsoup.parse(recognitionManager.recognizeFile(target, workPermitAreaStructure.getEmployer(), settings)));
 
 			// Debug
 			if (recognitionManager.isDebugOutput()) {
 				try {
-					BufferedImage debugImage = Helper.BufferedImageDeepCopy(image);
+					BufferedImage debugImage = Helper.bufferedImageDeepCopy(image);
 					// Only WP card (clean)
 					ImageIO.write(debugImage.getSubimage(workPermitAreaStructure.getMainArea().x, workPermitAreaStructure.getMainArea().y, workPermitAreaStructure.getMainArea().width, workPermitAreaStructure.getMainArea().height), "png", new File(recognitionManager.getDebugOutputDirectory(), target.getName().concat("_debugWP.png")));
 					Graphics2D debugGraphics = debugImage.createGraphics();
 					debugGraphics.setColor(Color.BLACK);
-					Helper.Graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getMainArea());
-					Helper.Graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getTitle());
+					Helper.graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getMainArea());
+					Helper.graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getTitle());
 					// Full image with cards (marked)
 					ImageIO.write(debugImage, "png", new File(recognitionManager.getDebugOutputDirectory(), target.getName().concat("_debugCards.png")));
 					debugGraphics.dispose();
 
-					debugImage = Helper.BufferedImageDeepCopy(image);
+					debugImage = Helper.bufferedImageDeepCopy(image);
 					debugGraphics = debugImage.createGraphics();
 					debugGraphics.setColor(Color.BLACK);
-					Helper.Graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getName());
-					Helper.Graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getCategory());
-					Helper.Graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getEmployer());
+					Helper.graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getName());
+					Helper.graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getCategory());
+					Helper.graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getEmployer());
 					// Only WP card (marked)
 					ImageIO.write(debugImage.getSubimage(workPermitAreaStructure.getMainArea().x, workPermitAreaStructure.getMainArea().y, workPermitAreaStructure.getMainArea().width, workPermitAreaStructure.getMainArea().height), "png", new File(recognitionManager.getDebugOutputDirectory(), target.getName().concat("_debugWPMarked.png")));
 					debugGraphics.dispose();
@@ -131,7 +131,7 @@ public class WPDataBuilder implements IDocumentDataBuilder {
 		return wpData.getCompleteness();
 	}
 	@Override
-	public void FillEmptyFields(IDocumentData value) throws RecognitionManagerException {
+	public void fillEmptyFields(IDocumentData value) throws RecognitionManagerException {
 
 		if (!value.getClass().equals(MOMData.class))
 			throw new RecognitionManagerException("Passed subclass of DocumentData doesn't match this subclass");
@@ -150,7 +150,7 @@ public class WPDataBuilder implements IDocumentDataBuilder {
 		visitPassAreaStructure = ((WPDataBuilder) value).visitPassAreaStructure;
 	}
 	@Override
-	public void FillFields(IDocumentData value) throws RecognitionManagerException {
+	public void fillFields(IDocumentData value) throws RecognitionManagerException {
 
 		if (!value.getClass().equals(MOMData.class))
 			throw new RecognitionManagerException("Passed subclass of DocumentData doesn't match this subclass");

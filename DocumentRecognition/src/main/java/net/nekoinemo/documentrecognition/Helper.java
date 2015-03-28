@@ -16,7 +16,7 @@ public class Helper {
 
 	private Helper() {}
 
-	public static String GetProperTextFromJSoupDoc(Document document) {
+	public static String getProperTextFromJSoupDoc(Document document) {
 
 		StringBuilder stringBuilder = new StringBuilder();
 
@@ -28,7 +28,7 @@ public class Helper {
 		return stringBuilder.toString();
 	}
 
-	public static ArrayList<File> GetImagesFromFile(File file) throws IOException {
+	public static ArrayList<File> imagesFromFile(File file) throws IOException {
 
 		ArrayList<File> result = new ArrayList<>();
 
@@ -50,31 +50,28 @@ public class Helper {
 
 		return result;
 	}
-	public static BufferedImage BufferedImageDeepCopy(BufferedImage sourceImage) {
+	public static BufferedImage bufferedImageDeepCopy(BufferedImage sourceImage) {
 
 		ColorModel colorModel = sourceImage.getColorModel();
 		WritableRaster raster = sourceImage.copyData(null);
 
 		return new BufferedImage(colorModel, raster, colorModel.isAlphaPremultiplied(), null).getSubimage(0, 0, sourceImage.getWidth(), sourceImage.getHeight());
 	}
-	public static Rectangle CropToSize(Rectangle rectangle, Rectangle availableArea) {
+	public static Rectangle cropToRectangle(Rectangle rectangle, Rectangle availableArea) {
 
-		return new Rectangle(rectangle.x < availableArea.x ? availableArea.x : rectangle.x,
-				rectangle.y < availableArea.y ? availableArea.y : rectangle.y,
-				rectangle.x + rectangle.width > availableArea.x + availableArea.width ? availableArea.x + availableArea.width - rectangle.x : rectangle.width,
-				rectangle.y + rectangle.height > availableArea.y + availableArea.height ? availableArea.y + availableArea.height - rectangle.y : rectangle.height);
+		return new Rectangle(rectangle.x < availableArea.x ? availableArea.x : rectangle.x, rectangle.y < availableArea.y ? availableArea.y : rectangle.y, rectangle.x + rectangle.width > availableArea.x + availableArea.width ? availableArea.x + availableArea.width - rectangle.x : rectangle.width, rectangle.y + rectangle.height > availableArea.y + availableArea.height ? availableArea.y + availableArea.height - rectangle.y : rectangle.height);
 	}
-	public static void Graphics2DDrawRectangle(Graphics2D graphics2D, Rectangle rectangle){
+	public static void graphics2DDrawRectangle(Graphics2D graphics2D, Rectangle rectangle) {
 
 		graphics2D.drawRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
 	}
-	public static BufferedImage DeskewImage(BufferedImage image){
+	public static BufferedImage deskewImage(BufferedImage image) {
 
-		return DeskewImage(image, image.getWidth()/2, image.getHeight()/2);
+		return deskewImage(image, image.getWidth() / 2, image.getHeight() / 2);
 	}
-	public static BufferedImage DeskewImage(BufferedImage image, int centerX, int centerY){
+	public static BufferedImage deskewImage(BufferedImage image, int centerX, int centerY) {
 
-		double skewAngle = Deskew.GetSkewAngle(image);
+		double skewAngle = Deskew.getSkewAngle(image);
 		return Deskew.rotate(image, skewAngle, centerX, centerY);
 	}
 }

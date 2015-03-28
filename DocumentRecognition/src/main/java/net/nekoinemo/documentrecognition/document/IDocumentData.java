@@ -17,9 +17,8 @@ public interface IDocumentData {
 
 	String toString();
 	/**
-	 *
-	 *
 	 * @param full If true - lists all of the fields, even ones that are empty.
+	 *
 	 * @return
 	 */
 	String toString(boolean full);

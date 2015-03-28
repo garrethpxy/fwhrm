@@ -4,7 +4,7 @@ import net.nekoinemo.documentrecognition.RecognitionManager;
 
 import java.util.EventObject;
 
-public class RecognitionManagerEvent extends EventObject{
+public class RecognitionManagerEvent extends EventObject {
 
 	private Throwable cause = null;
 	private String message = "";
@@ -52,7 +52,7 @@ public class RecognitionManagerEvent extends EventObject{
 			event = new RecognitionManagerEvent();
 		}
 
-		public RecognitionManagerEvent getEvent(){
+		public RecognitionManagerEvent getEvent() {
 
 			return event;
 		}

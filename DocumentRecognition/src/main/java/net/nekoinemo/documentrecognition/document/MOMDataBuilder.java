@@ -22,7 +22,6 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 	private static ArrayList<Pattern> patterns_occupation = new ArrayList<>();
 	private static ArrayList<Pattern> patterns_passport_number = new ArrayList<>();
 	private static ArrayList<Pattern> patterns_work_permit_number = new ArrayList<>();
-
 	static {
 
 		patterns_full_name.add(Pattern.compile("Name.*?worker.*?((?:[A-Z\\d]{3,}[ ]?)+)", Pattern.MULTILINE));
@@ -65,11 +64,11 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 		return momData;
 	}
 	@Override
-	public void ProcessImage(File target, RecognitionSettings settings) throws RecognitionManagerException {
+	public void processImage(File target, RecognitionSettings settings) throws RecognitionManagerException {
 
 		final RecognitionManager recognitionManager = RecognitionManager.getInstance();
-		final Document document = Jsoup.parse(recognitionManager.RecognizeFile(target, null, settings));
-		final String rawText = Helper.GetProperTextFromJSoupDoc(document);
+		final Document document = Jsoup.parse(recognitionManager.recognizeFile(target, null, settings));
+		final String rawText = Helper.getProperTextFromJSoupDoc(document);
 
 		Matcher matcher;
 		for (int i = 0; i < patterns_full_name.size(); i++) {
@@ -89,7 +88,7 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 		for (int i = 0; i < patterns_date_of_birth.size(); i++) {
 			matcher = patterns_date_of_birth.get(i).matcher(rawText);
 			if (matcher.find()) {
-				momData.date_of_birth = matcher.group(1) + '/' + matcher.group(2) + '/' +  matcher.group(3);
+				momData.date_of_birth = matcher.group(1) + '/' + matcher.group(2) + '/' + matcher.group(3);
 				break;
 			}
 		}
@@ -144,30 +143,31 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 		}
 	}
 	@Override
-	public int getCompleteness(){
+	public int getCompleteness() {
 
 		return momData.getCompleteness();
 	}
 	@Override
-	public void FillEmptyFields(IDocumentData value) throws RecognitionManagerException {
+	public void fillEmptyFields(IDocumentData value) throws RecognitionManagerException {
 
-		if (!value.getClass().equals(MOMData.class)) throw new RecognitionManagerException("Passed subclass of DocumentData doesn't match this subclass");
+		if (!value.getClass().equals(MOMData.class))
+			throw new RecognitionManagerException("Passed subclass of DocumentData doesn't match this subclass");
 
 		for (String fieldName : momData.DATA_FIELDS) {
 			try {
 				Field field = MOMData.class.getDeclaredField(fieldName);
 
 				field.setAccessible(true);
-				if (field.get(momData) == null)
-					field.set(momData, field.get(value));
+				if (field.get(momData) == null) field.set(momData, field.get(value));
 				field.setAccessible(false);
-			} catch (Exception e) {	}
+			} catch (Exception e) { }
 		}
 	}
 	@Override
-	public void FillFields(IDocumentData value) throws RecognitionManagerException {
+	public void fillFields(IDocumentData value) throws RecognitionManagerException {
 
-		if (!value.getClass().equals(MOMData.class)) throw new RecognitionManagerException("Passed subclass of DocumentData doesn't match this subclass");
+		if (!value.getClass().equals(MOMData.class))
+			throw new RecognitionManagerException("Passed subclass of DocumentData doesn't match this subclass");
 
 		for (String fieldName : momData.DATA_FIELDS) {
 			try {
@@ -175,10 +175,9 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 
 				field.setAccessible(true);
 				Object valuesValue = field.get(value);
-				if (valuesValue != null)
-					field.set(momData, valuesValue);
+				if (valuesValue != null) field.set(momData, valuesValue);
 				field.setAccessible(false);
-			} catch (Exception e) {	}
+			} catch (Exception e) { }
 		}
 	}
 

@@ -1,8 +1,8 @@
 package net.nekoinemo.documentrecognition.event;
 
 import net.nekoinemo.documentrecognition.RecognitionManager;
-import net.nekoinemo.documentrecognition.document.IDocumentData;
 import net.nekoinemo.documentrecognition.document.DocumentType;
+import net.nekoinemo.documentrecognition.document.IDocumentData;
 
 import java.util.EventObject;
 
@@ -68,7 +68,7 @@ public class RecognitionResultEvent extends EventObject {
 		return recognitionPercentage;
 	}
 
-	public static class RecognitionResultEventBuilder{
+	public static class RecognitionResultEventBuilder {
 
 		private RecognitionResultEvent event;
 
@@ -77,7 +77,7 @@ public class RecognitionResultEvent extends EventObject {
 			event = new RecognitionResultEvent(documentID);
 		}
 
-		public RecognitionResultEvent getEvent(){
+		public RecognitionResultEvent getEvent() {
 
 			return event;
 		}
