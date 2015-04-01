@@ -50,8 +50,7 @@ public class WPDataBuilder implements IDocumentDataBuilder {
 		try {
 			image = ImageIO.read(target);
 		} catch (IOException e) {
-			RecognitionManagerException exception = new RecognitionManagerException("Can't read image " + target.getName(), e);
-			throw exception;
+			throw new RecognitionManagerException("Can't read image " + target.getName(), e);
 		}
 
 		// If bounding boxes still not found - get full text and attempt to find them
@@ -96,7 +95,7 @@ public class WPDataBuilder implements IDocumentDataBuilder {
 			// Debug
 			if (recognitionManager.isDebugOutput()) {
 				try {
-					BufferedImage debugImage = Helper.bufferedImageDeepCopy(image);
+					BufferedImage debugImage = ImageHelper.copyImage(image);
 					// Only WP card (clean)
 					ImageIO.write(debugImage.getSubimage(workPermitAreaStructure.getMainArea().x, workPermitAreaStructure.getMainArea().y, workPermitAreaStructure.getMainArea().width, workPermitAreaStructure.getMainArea().height), "png", new File(recognitionManager.getDebugOutputDirectory(), target.getName().concat("_debugWP.png")));
 					Graphics2D debugGraphics = debugImage.createGraphics();
@@ -107,7 +106,7 @@ public class WPDataBuilder implements IDocumentDataBuilder {
 					ImageIO.write(debugImage, "png", new File(recognitionManager.getDebugOutputDirectory(), target.getName().concat("_debugCards.png")));
 					debugGraphics.dispose();
 
-					debugImage = Helper.bufferedImageDeepCopy(image);
+					debugImage = ImageHelper.copyImage(image);
 					debugGraphics = debugImage.createGraphics();
 					debugGraphics.setColor(Color.BLACK);
 					Helper.graphics2DDrawRectangle(debugGraphics, workPermitAreaStructure.getName());

@@ -6,8 +6,9 @@ import org.apache.commons.io.FilenameUtils;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.image.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +28,10 @@ public class Helper {
 
 		return stringBuilder.toString();
 	}
+	public static Rectangle cropToRectangle(Rectangle rectangle, Rectangle availableArea) {
 
+		return new Rectangle(rectangle.x < availableArea.x ? availableArea.x : rectangle.x, rectangle.y < availableArea.y ? availableArea.y : rectangle.y, rectangle.x + rectangle.width > availableArea.x + availableArea.width ? availableArea.x + availableArea.width - rectangle.x : rectangle.width, rectangle.y + rectangle.height > availableArea.y + availableArea.height ? availableArea.y + availableArea.height - rectangle.y : rectangle.height);
+	}
 	public static ArrayList<File> imagesFromFile(File file) throws IOException {
 
 		ArrayList<File> result = new ArrayList<>();
@@ -50,28 +54,14 @@ public class Helper {
 
 		return result;
 	}
-	public static BufferedImage bufferedImageDeepCopy(BufferedImage sourceImage) {
+	public static void rotateImageFile(File file, double angle) throws IOException {
 
-		ColorModel colorModel = sourceImage.getColorModel();
-		WritableRaster raster = sourceImage.copyData(null);
-
-		return new BufferedImage(colorModel, raster, colorModel.isAlphaPremultiplied(), null).getSubimage(0, 0, sourceImage.getWidth(), sourceImage.getHeight());
-	}
-	public static Rectangle cropToRectangle(Rectangle rectangle, Rectangle availableArea) {
-
-		return new Rectangle(rectangle.x < availableArea.x ? availableArea.x : rectangle.x, rectangle.y < availableArea.y ? availableArea.y : rectangle.y, rectangle.x + rectangle.width > availableArea.x + availableArea.width ? availableArea.x + availableArea.width - rectangle.x : rectangle.width, rectangle.y + rectangle.height > availableArea.y + availableArea.height ? availableArea.y + availableArea.height - rectangle.y : rectangle.height);
+		BufferedImage image = ImageIO.read(file);
+		image = ImageHelper.rotate(image, angle);
+		ImageIO.write(image, FilenameUtils.getExtension(file.getName()), file);
 	}
 	public static void graphics2DDrawRectangle(Graphics2D graphics2D, Rectangle rectangle) {
 
 		graphics2D.drawRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
-	}
-	public static BufferedImage deskewImage(BufferedImage image) {
-
-		return deskewImage(image, image.getWidth() / 2, image.getHeight() / 2);
-	}
-	public static BufferedImage deskewImage(BufferedImage image, int centerX, int centerY) {
-
-		double skewAngle = Deskew.getSkewAngle(image);
-		return Deskew.rotate(image, skewAngle, centerX, centerY);
 	}
 }

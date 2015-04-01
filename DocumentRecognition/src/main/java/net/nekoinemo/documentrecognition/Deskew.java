@@ -7,6 +7,14 @@ import java.awt.image.DataBuffer;
 
 class Deskew {
 
+	/**
+	 * Rotates image around the selected point inside the same image frame
+	 * @param image
+	 * @param angle
+	 * @param cx
+	 * @param cy
+	 * @return
+	 */
 	static BufferedImage rotate(BufferedImage image, double angle, int cx, int cy) {
 
 		int width = image.getWidth(null);

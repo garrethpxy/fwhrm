@@ -23,12 +23,12 @@ public class RecognitionManager implements IRecognitionManager {
 
 		// List of all supported extensions. Only files with those will be added by pushAllFiles()
 		private final ArrayList SUPPORTED_EXTENSIONS = new ArrayList() {{
-			add(".pdf");
-			add(".jpg");
-			add(".jpeg");
-			add(".png");
-			add(".gif");
-			add(".bmp");
+			add("pdf");
+			add("jpg");
+			add("jpeg");
+			add("png");
+			add("gif");
+			add("bmp");
 		}};
 
 		@Override
@@ -43,6 +43,7 @@ public class RecognitionManager implements IRecognitionManager {
 	private RecognitionManagerEventListener eventListener = null;
 	private Thread thread;
 	private boolean isRunning = false;
+	private RecognitionTarget currentTarget = null;
 
 	private final LinkedBlockingQueue<RecognitionTarget> targets;
 	private RecognitionSettings[] recognitionSettings = RecognitionSettings.DEFAULT;
@@ -154,6 +155,14 @@ public class RecognitionManager implements IRecognitionManager {
 	public int getQueueSize() {
 
 		return targets.size();
+	}
+	public ArrayList<RecognitionTarget> getQueue() {
+
+		return new ArrayList<>(targets);
+	}
+	public RecognitionTarget getCurrentTarget() {
+
+		return currentTarget;
 	}
 
 	@Override
@@ -274,17 +283,17 @@ public class RecognitionManager implements IRecognitionManager {
 
 		// Main loop. Will run until stop() is called
 		while (isRunning) {
-			RecognitionTarget target = null;
+			currentTarget = null;
 			try {
-				target = targets.poll(1000, TimeUnit.MILLISECONDS); // Waits 1s for target to appear then moves to the next iteration
+				currentTarget = targets.poll(1000, TimeUnit.MILLISECONDS); // Waits 1s for target to appear then moves to the next iteration
 			} catch (InterruptedException e) {}
 
-			if (target != null) {
+			if (currentTarget != null) {
 				try {
-					recognize(target, recognitionSettings);
+					recognize(currentTarget, recognitionSettings);
 					cleanWorkingDirectory(); // Clears the "workingImages" folder in the temporary directory
 				} catch (RecognitionManagerException e) {
-					fireRecognitionException("Failed to recognize file", target.getFile().getAbsolutePath(), e);
+					fireRecognitionException("Failed to recognize file", currentTarget.getFile().getAbsolutePath(), e);
 				}
 			}
 		}
@@ -313,21 +322,6 @@ public class RecognitionManager implements IRecognitionManager {
 			}
 		}
 
-		// Get document type
-		DocumentType documentType = null;
-		try {
-			documentType = getDocumentType(target);
-			if (documentType == null) {
-				RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(null).getEvent();
-				target.getEventListener().recognitionFinished(event);
-				return;
-			}
-		} catch (RecognitionManagerException e) {
-			RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(e).getEvent();
-			target.getEventListener().recognitionError(event);
-			throw e;
-		}
-
 		// Prepare file for recognition
 		ArrayList<File> images = null;
 		try {
@@ -335,6 +329,44 @@ public class RecognitionManager implements IRecognitionManager {
 		} catch (IOException e) {
 			RecognitionManagerException exception = new RecognitionManagerException("Error processing file \"" + target.getId() + '\"', e);
 			target.getEventListener().recognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(exception).getEvent());
+			throw exception;
+		}
+
+		// Get document type and orientation
+		DocumentType documentType = null;
+		int imageRotation = 0;
+		try {
+			BufferedImage firstPage = ImageIO.read(images.get(0));
+
+			// Try to get document type until document type is recognized or image is rotated 360 degrees
+			while (documentType == null && imageRotation < 360){
+				documentType = getDocumentType(firstPage);
+
+				if (documentType == null) {
+					imageRotation += 90;
+					firstPage = ImageHelper.rotate(firstPage, 90);
+				}
+			}
+
+			if (documentType == null) {
+				RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(null).getEvent();
+				target.getEventListener().recognitionFinished(event);
+				return;
+			} else if (images.size() > 1 && imageRotation != 0){
+
+				// Rotate all other pages of this image if first one wasn't orientated properly
+				for (int i = 1; i < images.size(); i++) {
+					Helper.rotateImageFile(images.get(i), imageRotation);
+				}
+			}
+		} catch (RecognitionManagerException e) {
+			RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(e).getEvent();
+			target.getEventListener().recognitionError(event);
+			throw e;
+		} catch (IOException e) {
+			RecognitionManagerException exception = new RecognitionManagerException("Error reading file: " + images.get(0).getName(), e);
+			RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(exception).getEvent();
+			target.getEventListener().recognitionError(event);
 			throw exception;
 		}
 
@@ -389,6 +421,7 @@ public class RecognitionManager implements IRecognitionManager {
 		RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(documentType).setDocumentData(documentData).setRecognitionPercentage(documentData.getCompleteness()).getEvent();
 		target.getEventListener().recognitionFinished(event);
 	}
+
 	public String recognizeFile(File target, Rectangle area, RecognitionSettings recognitionSettings) throws RecognitionManagerException {
 
 		tesseract.setOcrEngineMode(recognitionSettings.getEngineMode());
@@ -400,8 +433,30 @@ public class RecognitionManager implements IRecognitionManager {
 			throw new RecognitionManagerException(e);
 		}
 	}
+	public String recognizeImage(BufferedImage target, Rectangle area, RecognitionSettings recognitionSettings) throws RecognitionManagerException {
 
-	private DocumentType getDocumentType(RecognitionTarget target) throws RecognitionManagerException {
+		tesseract.setOcrEngineMode(recognitionSettings.getEngineMode());
+		tesseract.setPageSegMode(recognitionSettings.getPageSegMode());
+
+		try {
+			return tesseract.doOCR(target, area);
+		} catch (TesseractException e) {
+			throw new RecognitionManagerException(e);
+		}
+	}
+	public ArrayList<File> prepareImages(File source) throws IOException {
+
+		ArrayList<File> pages = Helper.imagesFromFile(source);
+		for (File page : pages) {
+			BufferedImage image = ImageIO.read(page);
+			image = ImageHelper.deskewImage(image);
+			ImageIO.write(image, "png", new File(FilenameUtils.removeExtension(page.getAbsolutePath()).concat(".png")));
+		}
+
+		return pages;
+	}
+
+	private DocumentType getDocumentType(BufferedImage image) throws RecognitionManagerException {
 
 		DocumentType documentType = null;
 		final Document hOCRText;
@@ -409,9 +464,9 @@ public class RecognitionManager implements IRecognitionManager {
 
 		try {
 			// Do (fast) recognition with the very basic settings to get all of the text on the image
-			hOCRText = Jsoup.parse(recognizeFile(target.getFile(), null, new RecognitionSettings(0, RecognitionSettings.ENGINE_MODE_BASIC, RecognitionSettings.PAGESEG_MODE_SINGLE_BLOCK)));
+			hOCRText = Jsoup.parse(recognizeImage(image, null, new RecognitionSettings(0, RecognitionSettings.ENGINE_MODE_BASIC, RecognitionSettings.PAGESEG_MODE_SINGLE_BLOCK)));
 		} catch (RecognitionManagerException e) {
-			throw new RecognitionManagerException("Error recognizing image \"" + target.getId() + '\"', e);
+			throw new RecognitionManagerException("Error recognizing image", e);
 		}
 
 		for (DocumentType type : DocumentType.values()) {
@@ -424,17 +479,6 @@ public class RecognitionManager implements IRecognitionManager {
 		}
 
 		return documentType;
-	}
-	private ArrayList<File> prepareImages(File source) throws IOException {
-
-		ArrayList<File> pages = Helper.imagesFromFile(source);
-		for (File page : pages) {
-			BufferedImage image = ImageIO.read(page);
-			image = Helper.deskewImage(image);
-			ImageIO.write(image, "png", new File(FilenameUtils.removeExtension(page.getAbsolutePath()).concat(".png")));
-		}
-
-		return pages;
 	}
 	private void cleanWorkingDirectory() {
 
