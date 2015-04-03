@@ -6,21 +6,11 @@ import java.awt.*;
 
 public class WorkPermitAreaStructure {
 
+	private final static float MODIFIER_ROUGHT_MAIN_WIDTH = 6f;
+	private final static float MODIFIER_ROUGHT_MAIN_HEIGHT_UP = 2.0f;
+	private final static float MODIFIER_ROUGHT_MAIN_HEIGHT_DOWN = 29.0f;
 	private final static float MODIFIER_MAIN_WIDTH = 4.8f;
 	private final static float MODIFIER_MAIN_HEIGHT = 25.0f;
-
-	private final static float MODIFIER_NAME_X = 0.28f;
-	private final static float MODIFIER_NAME_WIDTH = 0.50f;
-	private final static float MODIFIER_NAME_Y = 0.35f;
-	private final static float MODIFIER_NAME_HEIGHT = 0.05f;
-	private final static float MODIFIER_CATEGORY_X = 0.14f;
-	private final static float MODIFIER_CATEGORY_WIDTH = 0.36f;
-	private final static float MODIFIER_CATEGORY_Y = 0.26f;
-	private final static float MODIFIER_CATEGORY_HEIGHT = 0.05f;
-	private final static float MODIFIER_EMPLOYER_X = 0.05f;
-	private final static float MODIFIER_EMPLOYER_WIDTH = 0.55f;
-	private final static float MODIFIER_EMPLOYER_Y = 0.19f;
-	private final static float MODIFIER_EMPLOYER_HEIGHT = 0.05f;
 
 	private final Rectangle mainArea;
 	private final Rectangle title;
@@ -28,6 +18,8 @@ public class WorkPermitAreaStructure {
 	private final Rectangle name;
 	private final Rectangle category;
 	private final Rectangle employer;
+	private final Rectangle number;
+	private final Rectangle dateOfExpiry;
 
 	public WorkPermitAreaStructure(Rectangle titleBBox, int imageWidth, int imageHeight) {
 
@@ -45,23 +37,36 @@ public class WorkPermitAreaStructure {
 		// Make sure that bounding box fits inside the image
 		mainArea = Helper.cropToRectangle(new Rectangle(x, y, w, h), imageArea);
 
-		x = mainArea.x + (int) (mainArea.width * MODIFIER_NAME_X);
-		y = mainArea.y + (int) (mainArea.height * MODIFIER_NAME_Y);
-		w = (int) (mainArea.width * MODIFIER_NAME_WIDTH);
-		h = (int) (mainArea.height * MODIFIER_NAME_HEIGHT);
-		name = Helper.cropToRectangle(new Rectangle(x, y, w, h), imageArea);
+		name = Helper.cropToRectangle(Subarea.NAME.location(mainArea), imageArea);
+		category = Helper.cropToRectangle(Subarea.CATEGORY.location(mainArea), imageArea);
+		employer = Helper.cropToRectangle(Subarea.EMPLOYER.location(mainArea), imageArea);
+		number = Helper.cropToRectangle(Subarea.NUMBER.location(mainArea), imageArea);
+		dateOfExpiry = Helper.cropToRectangle(Subarea.DATE_OF_EXPIRY.location(mainArea), imageArea);
+	}
 
-		x = mainArea.x + (int) (mainArea.width * MODIFIER_CATEGORY_X);
-		y = mainArea.y + (int) (mainArea.height * MODIFIER_CATEGORY_Y);
-		w = (int) (mainArea.width * MODIFIER_CATEGORY_WIDTH);
-		h = (int) (mainArea.height * MODIFIER_CATEGORY_HEIGHT);
-		category = Helper.cropToRectangle(new Rectangle(x, y, w, h), imageArea);
+	/**
+	 * Get estimated area WITHIN which card is located. Area then should be deskewed and then properly recognized
+	 *
+	 * @param roughTitleBBox
+	 * @param imageWidth
+	 * @param imageHeight
+	 *
+	 * @return
+	 */
+	public static Rectangle estimateLocation(Rectangle roughTitleBBox, int imageWidth, int imageHeight) {
 
-		x = mainArea.x + (int) (mainArea.width * MODIFIER_EMPLOYER_X);
-		y = mainArea.y + (int) (mainArea.height * MODIFIER_EMPLOYER_Y);
-		w = (int) (mainArea.width * MODIFIER_EMPLOYER_WIDTH);
-		h = (int) (mainArea.height * MODIFIER_EMPLOYER_HEIGHT);
-		employer = Helper.cropToRectangle(new Rectangle(x, y, w, h), imageArea);
+		Rectangle imageArea = new Rectangle(0, 0, imageWidth, imageHeight);
+
+		int titleHalfWidth = roughTitleBBox.width / 2;
+		int resultHalfWidth = (int) (titleHalfWidth * MODIFIER_ROUGHT_MAIN_WIDTH);
+
+		int x = roughTitleBBox.x + titleHalfWidth - resultHalfWidth;
+		int y = roughTitleBBox.y - (int) (roughTitleBBox.height * MODIFIER_ROUGHT_MAIN_HEIGHT_UP);
+		int w = resultHalfWidth * 2;
+		int h = (int) (roughTitleBBox.height * MODIFIER_ROUGHT_MAIN_HEIGHT_DOWN);
+
+		// Make sure that bounding box fits inside the image
+		return Helper.cropToRectangle(new Rectangle(x, y, w, h), imageArea);
 	}
 
 	public Rectangle getMainArea() {
@@ -83,5 +88,45 @@ public class WorkPermitAreaStructure {
 	public Rectangle getEmployer() {
 
 		return employer;
+	}
+	public Rectangle getNumber() {
+
+		return number;
+	}
+	public Rectangle getDateOfExpiry() {
+
+		return dateOfExpiry;
+	}
+
+	private enum Subarea {
+
+		NAME(0.28f, 0.35f, 0.5f, 0.05f),
+		EMPLOYER(0.05f, 0.19f, 0.55f, 0.05f),
+		CATEGORY(0.14f, 0.26f, 0.36f, 0.05f),
+		NUMBER(0.28f, 0.57f, 0.15f, 0.05f),
+		DATE_OF_EXPIRY(0.5f, 0.79f, 0.15f, 0.05f);
+
+		private final float areaX;
+		private final float areaY;
+		private final float areaWidth;
+		private final float areaHeight;
+
+		private Subarea(float x, float y, float width, float height) {
+
+			this.areaX = x;
+			this.areaY = y;
+			this.areaWidth = width;
+			this.areaHeight = height;
+		}
+
+		public Rectangle location(Rectangle mainArea) {
+
+			int x = mainArea.x + (int) (mainArea.width * areaX);
+			int y = mainArea.y + (int) (mainArea.height * areaY);
+			int width = (int) (mainArea.width * areaWidth);
+			int height = (int) (mainArea.height * areaHeight);
+
+			return new Rectangle(x, y, width, height);
+		}
 	}
 }

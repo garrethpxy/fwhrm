@@ -98,16 +98,16 @@ public class MOMData implements IDocumentData {
 		if (!full) return toString();
 
 		return "MOMData{" +
-				"\nfull_name='" + full_name + '\'' +
-				"\npassport_number='" + passport_number + '\'' +
-				"\ndate_of_birth='" + date_of_birth + '\'' +
-				"\nwork_permit_number='" + work_permit_number + '\'' +
-				"\nnric_or_fin_number='" + nric_or_fin_number + '\'' +
-				"\nnationality='" + nationality + '\'' +
-				"\noccupation='" + occupation + '\'' +
-				"\nemployer_name='" + employer_name + '\'' +
-				"\nemployer_telephone='" + employer_telephone + '\'' +
-				"\nemployer_uen='" + employer_uen + '\'' +
+				"\n\tfull_name='" + full_name + '\'' +
+				"\n\tpassport_number='" + passport_number + '\'' +
+				"\n\tdate_of_birth='" + date_of_birth + '\'' +
+				"\n\twork_permit_number='" + work_permit_number + '\'' +
+				"\n\tnric_or_fin_number='" + nric_or_fin_number + '\'' +
+				"\n\tnationality='" + nationality + '\'' +
+				"\n\toccupation='" + occupation + '\'' +
+				"\n\temployer_name='" + employer_name + '\'' +
+				"\n\temployer_telephone='" + employer_telephone + '\'' +
+				"\n\temployer_uen='" + employer_uen + '\'' +
 				"\n}";
 	}
 }

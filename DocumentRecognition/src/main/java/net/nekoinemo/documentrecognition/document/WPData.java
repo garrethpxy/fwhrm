@@ -2,16 +2,19 @@ package net.nekoinemo.documentrecognition.document;
 
 public class WPData implements IDocumentData {
 
-	protected static final String[] DATA_FIELDS = new String[]{ "date_of_birth", "employer_name", "full_name", "nationality", "fin_number", "work_permit_number", "work_permit_category", "work_permit_expiration_date" };
+	protected static final String[] DATA_FIELDS = new String[]{ "full_name", "employer_name", "work_permit_number", "work_permit_category", "work_permit_expiration_date", "date_of_birth", "fin_number", "nationality" };
 
+	// Work Permit side
 	protected String full_name = null;
-	protected String date_of_birth = null;
+	protected String employer_name = null;
 	protected String work_permit_number = null;
 	protected String work_permit_category = null;
 	protected String work_permit_expiration_date = null;
+
+	// Visit Pass side
+	protected String date_of_birth = null;
 	protected String fin_number = null;
 	protected String nationality = null;
-	protected String employer_name = null;
 
 	protected WPData() {}
 
@@ -60,7 +63,7 @@ public class WPData implements IDocumentData {
 
 		for (String fieldName : DATA_FIELDS) {
 			try {
-				if (MOMData.class.getDeclaredField(fieldName).get(this) != null) completeness++;
+				if (WPData.class.getDeclaredField(fieldName).get(this) != null) completeness++;
 			} catch (Exception e) {}
 		}
 		return (int) (((float) completeness / DATA_FIELDS.length) * 100);
@@ -86,14 +89,14 @@ public class WPData implements IDocumentData {
 		if (!full) return toString();
 
 		return "MOMData{" +
-				"\nfull_name='" + full_name + '\'' +
-				"\ndate_of_birth='" + date_of_birth + '\'' +
-				"\nwork_permit_number='" + work_permit_number + '\'' +
-				"\nwork_permit_category='" + work_permit_category + '\'' +
-				"\nwork_permit_expiration_date='" + work_permit_expiration_date + '\'' +
-				"\nfin_number='" + fin_number + '\'' +
-				"\nnationality='" + nationality + '\'' +
-				"\nemployer_name='" + employer_name + '\'' +
+				"\n\tfull_name='" + full_name + '\'' +
+				"\n\tdate_of_birth='" + date_of_birth + '\'' +
+				"\n\twork_permit_number='" + work_permit_number + '\'' +
+				"\n\twork_permit_category='" + work_permit_category + '\'' +
+				"\n\twork_permit_expiration_date='" + work_permit_expiration_date + '\'' +
+				"\n\tfin_number='" + fin_number + '\'' +
+				"\n\tnationality='" + nationality + '\'' +
+				"\n\temployer_name='" + employer_name + '\'' +
 				"\n}";
 	}
 }

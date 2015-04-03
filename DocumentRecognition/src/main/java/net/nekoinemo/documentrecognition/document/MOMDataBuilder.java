@@ -5,7 +5,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,6 +52,8 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 
 	private final MOMData momData;
 
+	private final StringBuilder debugText = new StringBuilder();
+
 	public MOMDataBuilder() {
 
 		momData = new MOMData();
@@ -64,11 +65,33 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 		return momData;
 	}
 	@Override
-	public void processImage(File target, RecognitionSettings settings) throws RecognitionManagerException {
+	public void processImage(RecognitionManager.RecognitionTarget target, RecognitionSettings[] settings) throws RecognitionManagerException {
 
-		final RecognitionManager recognitionManager = RecognitionManager.getInstance();
-		final Document document = Jsoup.parse(recognitionManager.recognizeFile(target, null, settings));
-		final String rawText = Helper.getProperTextFromJSoupDoc(document);
+		int currentSettings = 0;
+		while (currentSettings < settings.length && getCompleteness() < settings[currentSettings].getPassingCompliteness()){
+			for (File file : target.getImages()) {
+				doRecognition(file, settings[currentSettings]);
+			}
+
+			currentSettings++;
+		}
+	}
+	@Override
+	public int getCompleteness() {
+
+		return momData.getCompleteness();
+	}
+	@Override
+	public String getDebugText() {
+
+		return debugText.toString();
+	}
+
+	private void doRecognition(File target,  RecognitionSettings settings) throws RecognitionManagerException {
+
+		RecognitionManager recognitionManager = RecognitionManager.getInstance();
+		Document document = Jsoup.parse(recognitionManager.recognize(target, null, settings));
+		String rawText = Helper.getProperTextFromJSoupDoc(document);
 
 		Matcher matcher;
 		for (int i = 0; i < patterns_full_name.size(); i++) {
@@ -141,94 +164,5 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 				break;
 			}
 		}
-	}
-	@Override
-	public int getCompleteness() {
-
-		return momData.getCompleteness();
-	}
-	@Override
-	public void fillEmptyFields(IDocumentData value) throws RecognitionManagerException {
-
-		if (!value.getClass().equals(MOMData.class))
-			throw new RecognitionManagerException("Passed subclass of DocumentData doesn't match this subclass");
-
-		for (String fieldName : momData.DATA_FIELDS) {
-			try {
-				Field field = MOMData.class.getDeclaredField(fieldName);
-
-				field.setAccessible(true);
-				if (field.get(momData) == null) field.set(momData, field.get(value));
-				field.setAccessible(false);
-			} catch (Exception e) { }
-		}
-	}
-	@Override
-	public void fillFields(IDocumentData value) throws RecognitionManagerException {
-
-		if (!value.getClass().equals(MOMData.class))
-			throw new RecognitionManagerException("Passed subclass of DocumentData doesn't match this subclass");
-
-		for (String fieldName : momData.DATA_FIELDS) {
-			try {
-				Field field = MOMData.class.getDeclaredField(fieldName);
-
-				field.setAccessible(true);
-				Object valuesValue = field.get(value);
-				if (valuesValue != null) field.set(momData, valuesValue);
-				field.setAccessible(false);
-			} catch (Exception e) { }
-		}
-	}
-
-	public MOMDataBuilder setDate_of_birth(String date_of_birth) {
-
-		momData.date_of_birth = date_of_birth;
-		return this;
-	}
-	public MOMDataBuilder setEmployer_name(String employer_name) {
-
-		momData.employer_name = employer_name;
-		return this;
-	}
-	public MOMDataBuilder setEmployer_telephone(String employer_telephone) {
-
-		momData.employer_telephone = employer_telephone;
-		return this;
-	}
-	public MOMDataBuilder setEmployer_uen(String employer_uen) {
-
-		momData.employer_uen = employer_uen;
-		return this;
-	}
-	public MOMDataBuilder setFull_name(String full_name) {
-
-		momData.full_name = full_name;
-		return this;
-	}
-	public MOMDataBuilder setNationality(String nationality) {
-
-		momData.nationality = nationality;
-		return this;
-	}
-	public MOMDataBuilder setNric_or_fin_number(String nric_or_fin_number) {
-
-		momData.nric_or_fin_number = nric_or_fin_number;
-		return this;
-	}
-	public MOMDataBuilder setOccupation(String occupation) {
-
-		momData.occupation = occupation;
-		return this;
-	}
-	public MOMDataBuilder setPassport_number(String passport_number) {
-
-		momData.passport_number = passport_number;
-		return this;
-	}
-	public MOMDataBuilder setWork_permit_number(String work_permit_number) {
-
-		momData.work_permit_number = work_permit_number;
-		return this;
 	}
 }

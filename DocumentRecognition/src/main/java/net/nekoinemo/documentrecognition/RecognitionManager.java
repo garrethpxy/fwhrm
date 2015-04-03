@@ -1,6 +1,7 @@
 package net.nekoinemo.documentrecognition;
 
-import net.nekoinemo.documentrecognition.document.*;
+import net.nekoinemo.documentrecognition.document.DocumentType;
+import net.nekoinemo.documentrecognition.document.IDocumentDataBuilder;
 import net.nekoinemo.documentrecognition.event.*;
 import net.sourceforge.tess4j.*;
 import org.apache.commons.io.FilenameUtils;
@@ -212,6 +213,10 @@ public class RecognitionManager implements IRecognitionManager {
 
 		return debugOutputDirectory;
 	}
+	public File getDebugFile(String name){
+
+		return new File(INSTANCE.debugOutputDirectory, name);
+	}
 	public File getWorkingImagesDirectory() {
 
 		return workingImagesDirectory;
@@ -281,6 +286,8 @@ public class RecognitionManager implements IRecognitionManager {
 	@Override
 	public void run() {
 
+		cleanWorkingDirectory(); // Clears the "workingImages" folder in the temporary directory
+
 		// Main loop. Will run until stop() is called
 		while (isRunning) {
 			currentTarget = null;
@@ -290,9 +297,10 @@ public class RecognitionManager implements IRecognitionManager {
 
 			if (currentTarget != null) {
 				try {
-					recognize(currentTarget, recognitionSettings);
+					doRecognition(currentTarget, recognitionSettings);
 					cleanWorkingDirectory(); // Clears the "workingImages" folder in the temporary directory
 				} catch (RecognitionManagerException e) {
+					currentTarget.getEventListener().recognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(currentTarget.getId()).setCause(e).getEvent()); // Notify even listener that file recognition failed
 					fireRecognitionException("Failed to recognize file", currentTarget.getFile().getAbsolutePath(), e);
 				}
 			}
@@ -300,16 +308,35 @@ public class RecognitionManager implements IRecognitionManager {
 
 		// Notify all remaining targets that recognition was aborted
 		if (targets.size() > 0) {
-			targets.forEach(target -> {
-
-				RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(new RecognitionManagerException("Recognition process was aborted")).getEvent();
-				target.getEventListener().recognitionError(event);
-			});
+			targets.forEach(target -> target.getEventListener().recognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(new RecognitionManagerException("Recognition process was aborted")).getEvent()));
 			targets.clear();
 		}
 	}
 
-	private void recognize(RecognitionTarget target, RecognitionSettings[] recognitionSettings) throws RecognitionManagerException {
+	public String recognize(File target, Rectangle area, RecognitionSettings recognitionSettings) throws RecognitionManagerException {
+
+		tesseract.setOcrEngineMode(recognitionSettings.getEngineMode());
+		tesseract.setPageSegMode(recognitionSettings.getPageSegMode());
+
+		try {
+			return tesseract.doOCR(target, area);
+		} catch (TesseractException e) {
+			throw new RecognitionManagerException(e);
+		}
+	}
+	public String recognize(BufferedImage target, Rectangle area, RecognitionSettings recognitionSettings) throws RecognitionManagerException {
+
+		tesseract.setOcrEngineMode(recognitionSettings.getEngineMode());
+		tesseract.setPageSegMode(recognitionSettings.getPageSegMode());
+
+		try {
+			return tesseract.doOCR(target, area);
+		} catch (TesseractException e) {
+			throw new RecognitionManagerException(e);
+		}
+	}
+
+	private void doRecognition(RecognitionTarget target, RecognitionSettings[] recognitionSettings) throws RecognitionManagerException {
 
 		// Set up debug output file
 		OutputStreamWriter debugWriter = null;
@@ -322,163 +349,33 @@ public class RecognitionManager implements IRecognitionManager {
 			}
 		}
 
-		// Prepare file for recognition
-		ArrayList<File> images = null;
 		try {
-			images = prepareImages(target.getFile());
-		} catch (IOException e) {
-			RecognitionManagerException exception = new RecognitionManagerException("Error processing file \"" + target.getId() + '\"', e);
-			target.getEventListener().recognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(exception).getEvent());
-			throw exception;
-		}
+			target.prepare();
 
-		// Get document type and orientation
-		DocumentType documentType = null;
-		int imageRotation = 0;
-		try {
-			BufferedImage firstPage = ImageIO.read(images.get(0));
-
-			// Try to get document type until document type is recognized or image is rotated 360 degrees
-			while (documentType == null && imageRotation < 360){
-				documentType = getDocumentType(firstPage);
-
-				if (documentType == null) {
-					imageRotation += 90;
-					firstPage = ImageHelper.rotate(firstPage, 90);
-				}
-			}
-
-			if (documentType == null) {
-				RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(null).getEvent();
-				target.getEventListener().recognitionFinished(event);
+			if (target.getDocumentType() == null) {
+				target.getEventListener().recognitionFinished(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).getEvent());
 				return;
-			} else if (images.size() > 1 && imageRotation != 0){
+			}
 
-				// Rotate all other pages of this image if first one wasn't orientated properly
-				for (int i = 1; i < images.size(); i++) {
-					Helper.rotateImageFile(images.get(i), imageRotation);
+			IDocumentDataBuilder builder = target.getDocumentType().getBuilder();
+			builder.processImage(target, recognitionSettings);
+
+			if (debugWriter != null) try {
+				debugWriter.write(target.getId() + '\t' + target.getDocumentType() + '\t' + builder.getCompleteness() + System.lineSeparator());
+				debugWriter.write(builder.getDocumentData().toString(true) + System.lineSeparator());
+				debugWriter.write(builder.getDebugText());
+			} catch (IOException e) {
+				fireMiscException("Can't write to debug file", e);
+			}
+
+			target.getEventListener().recognitionFinished(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(target.getDocumentType()).setDocumentData(builder.getDocumentData()).setRecognitionPercentage(builder.getCompleteness()).getEvent());
+		} finally {
+			try {
+				if (debugWriter != null) {
+					debugWriter.close();
 				}
-			}
-		} catch (RecognitionManagerException e) {
-			RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(e).getEvent();
-			target.getEventListener().recognitionError(event);
-			throw e;
-		} catch (IOException e) {
-			RecognitionManagerException exception = new RecognitionManagerException("Error reading file: " + images.get(0).getName(), e);
-			RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(exception).getEvent();
-			target.getEventListener().recognitionError(event);
-			throw exception;
+			} catch (IOException e) {}
 		}
-
-		// Do recognition with each set of settings (or until desired data completeness achieved)
-		ArrayList<RecognitionResult> recognitionResults = new ArrayList<>(recognitionSettings.length);
-		for (int i = 0; i < recognitionSettings.length; i++) {
-			RecognitionResult result = new RecognitionResult(recognitionSettings[i]);
-			recognitionResults.add(i, result);
-
-			IDocumentDataBuilder builder = documentType.getBuilder();
-			result.setDocumentDataBuilder(builder);
-
-			if (i > 0) try {
-				// Copy results from the previous iteration (in case in this one nothing will be recognized)
-				result.getDocumentDataBuilder().fillEmptyFields(recognitionResults.get(i - 1).getDocumentDataBuilder().getDocumentData());
-			} catch (RecognitionManagerException e) {}
-
-			// Run recognition for each page
-			for (File imageFile : images) {
-				try {
-					builder.processImage(imageFile, result.settings);
-				} catch (RecognitionManagerException e) {
-					target.getEventListener().recognitionError(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setCause(e).getEvent());
-					throw new RecognitionManagerException("Error recognizing image \"" + target.getId() + '\"', e);
-				}
-			}
-
-			// Output debug recognition data
-			if (debugWriter != null) {
-				try {
-					debugWriter.write("iteration: " + i + "\tcompleteness: " + result.getDocumentDataBuilder().getCompleteness() + '\n');
-					debugWriter.write(result.getSettings().toString() + '\n');
-					debugWriter.write(result.getDocumentDataBuilder().getDocumentData().toString(true) + '\n');
-					debugWriter.write('\n');
-					debugWriter.flush();
-
-					if (i == recognitionSettings.length - 1) debugWriter.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-
-			if (result.getDocumentDataBuilder().getCompleteness() >= result.getSettings().getPassingCompliteness()) // If target completeness was achieved - stop
-				break;
-		}
-
-		// Send recognition results
-		// Get DocumentData from the builder in the last result
-		IDocumentData documentData = recognitionResults.get(recognitionResults.size() - 1).getDocumentDataBuilder().getDocumentData();
-		// Get event to be sent out.
-		// Create new builder with this docID, set recognized type, set recognized data, set data completeness and get event from that builder
-		RecognitionResultEvent event = new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).setDocumentType(documentType).setDocumentData(documentData).setRecognitionPercentage(documentData.getCompleteness()).getEvent();
-		target.getEventListener().recognitionFinished(event);
-	}
-
-	public String recognizeFile(File target, Rectangle area, RecognitionSettings recognitionSettings) throws RecognitionManagerException {
-
-		tesseract.setOcrEngineMode(recognitionSettings.getEngineMode());
-		tesseract.setPageSegMode(recognitionSettings.getPageSegMode());
-
-		try {
-			return tesseract.doOCR(target, area);
-		} catch (TesseractException e) {
-			throw new RecognitionManagerException(e);
-		}
-	}
-	public String recognizeImage(BufferedImage target, Rectangle area, RecognitionSettings recognitionSettings) throws RecognitionManagerException {
-
-		tesseract.setOcrEngineMode(recognitionSettings.getEngineMode());
-		tesseract.setPageSegMode(recognitionSettings.getPageSegMode());
-
-		try {
-			return tesseract.doOCR(target, area);
-		} catch (TesseractException e) {
-			throw new RecognitionManagerException(e);
-		}
-	}
-	public ArrayList<File> prepareImages(File source) throws IOException {
-
-		ArrayList<File> pages = Helper.imagesFromFile(source);
-		for (File page : pages) {
-			BufferedImage image = ImageIO.read(page);
-			image = ImageHelper.deskewImage(image);
-			ImageIO.write(image, "png", new File(FilenameUtils.removeExtension(page.getAbsolutePath()).concat(".png")));
-		}
-
-		return pages;
-	}
-
-	private DocumentType getDocumentType(BufferedImage image) throws RecognitionManagerException {
-
-		DocumentType documentType = null;
-		final Document hOCRText;
-		float bestMatch = 0f;
-
-		try {
-			// Do (fast) recognition with the very basic settings to get all of the text on the image
-			hOCRText = Jsoup.parse(recognizeImage(image, null, new RecognitionSettings(0, RecognitionSettings.ENGINE_MODE_BASIC, RecognitionSettings.PAGESEG_MODE_SINGLE_BLOCK)));
-		} catch (RecognitionManagerException e) {
-			throw new RecognitionManagerException("Error recognizing image", e);
-		}
-
-		for (DocumentType type : DocumentType.values()) {
-			// Get the chance that recognized text belongs to the document of this type
-			float match = type.matchText(Helper.getProperTextFromJSoupDoc(hOCRText));
-			if (match > bestMatch) {
-				documentType = type;
-				bestMatch = match;
-			}
-		}
-
-		return documentType;
 	}
 	private void cleanWorkingDirectory() {
 
@@ -486,6 +383,8 @@ public class RecognitionManager implements IRecognitionManager {
 			file.delete();
 		}
 	}
+
+	// Event triggers
 
 	void fireSystemException(String message, Throwable cause) {
 
@@ -513,39 +412,16 @@ public class RecognitionManager implements IRecognitionManager {
 	}
 
 	/**
-	 * Class contains result of one recognition iteration along with the used settings
-	 */
-	private class RecognitionResult {
-
-		private RecognitionSettings settings;
-		private IDocumentDataBuilder documentDataBuilder = null;
-
-		public RecognitionResult(RecognitionSettings settings) {
-
-			this.settings = settings;
-		}
-
-		public RecognitionSettings getSettings() {
-
-			return settings;
-		}
-		public IDocumentDataBuilder getDocumentDataBuilder() {
-
-			return documentDataBuilder;
-		}
-		public void setDocumentDataBuilder(IDocumentDataBuilder documentDataBuilder) {
-
-			this.documentDataBuilder = documentDataBuilder;
-		}
-	}
-	/**
 	 * Structure type class that encapsulates the file to be processed
 	 */
-	private class RecognitionTarget {
+	public class RecognitionTarget {
 
 		private final String id;
 		private final File file;
 		private final RecognitionResultEventListener eventListener;
+		private ArrayList<File> images = new ArrayList<>();
+		private int rotationAngle = 0;
+		private DocumentType documentType = null;
 
 		public RecognitionTarget(String id, File file, RecognitionResultEventListener eventListener) {
 
@@ -565,6 +441,110 @@ public class RecognitionManager implements IRecognitionManager {
 		public RecognitionResultEventListener getEventListener() {
 
 			return eventListener;
+		}
+		public ArrayList<File> getImages() {
+
+			return new ArrayList<>(images);
+		}
+		public int getRotationAngle() {
+
+			return rotationAngle;
+		}
+		public DocumentType getDocumentType() {
+
+			return documentType;
+		}
+
+		/**
+		 * Extracts images from the file, then determines document type and orientation. The rotates all extracted images to the correct orientation
+		 *
+		 * @throws RecognitionManagerException
+		 */
+		protected void prepare() throws RecognitionManagerException {
+
+			try {
+				extractImages();
+			} catch (IOException e) {
+				throw makeException("Error extracting images", e);
+			}
+
+			int currentAngle = 0;
+
+			int i = 0;
+			while (i < images.size() && documentType == null) { // Check all files until docType is determined
+				currentAngle = -90;
+				BufferedImage image;
+
+				try {
+					image = ImageIO.read(images.get(i));
+				} catch (IOException e) {
+					throw makeException("Error reading tmp file " + images.get(i).getName(), e);
+				}
+
+				while (currentAngle < 270 && documentType == null) { // Rotate image CW 90 until docType is determined
+					currentAngle += 90;
+					image = ImageHelper.rotate(image, currentAngle);
+
+					documentType = checkDocumentType(image);
+				}
+			}
+
+			if (documentType != null && currentAngle != 0) {
+				documentType = documentType;
+				rotationAngle = currentAngle;
+
+				rotateImages();
+			}
+		}
+
+		private void extractImages() throws IOException {
+
+			images = Helper.imagesFromFile(file);
+			for (File page : images) {
+				BufferedImage image = ImageIO.read(page);
+				image = ImageHelper.deskewImage(image);
+				ImageIO.write(image, "png", new File(FilenameUtils.removeExtension(page.getAbsolutePath()).concat(".png")));
+			}
+		}
+		private DocumentType checkDocumentType(BufferedImage image) throws RecognitionManagerException {
+
+			DocumentType docType = null;
+			Document hOCRText = null;
+			float bestMatch = 0f;
+
+			// Do (fast) recognition with the very basic settings to get all of the text on the image
+			try {
+				hOCRText = Jsoup.parse(recognize(image, null, new RecognitionSettings(0, RecognitionSettings.ENGINE_MODE_BASIC, RecognitionSettings.PAGESEG_MODE_SINGLE_BLOCK)));
+			} catch (RecognitionManagerException e) {
+				throw makeException(e.getMessage(), e.getCause()); // Repack exception for standardized look
+			}
+
+			for (DocumentType type : DocumentType.values()) {
+				// Get the chance that recognized text belongs to the document of this type
+				float match = type.matchText(Helper.getProperTextFromJSoupDoc(hOCRText));
+
+				if (match > bestMatch) {
+					docType = type;
+					bestMatch = match;
+				}
+			}
+
+			return docType;
+		}
+		private void rotateImages() throws RecognitionManagerException {
+
+			for (File image : images) {
+				try {
+					Helper.rotateImageFile(image, rotationAngle);
+				} catch (IOException e) {
+					throw makeException("Error rotating tmp file \" + image.getName()", e);
+				}
+			}
+		}
+
+		private RecognitionManagerException makeException(String message, Throwable cause) {
+
+			return new RecognitionManagerException(id + " - " + message, cause);
 		}
 	}
 }

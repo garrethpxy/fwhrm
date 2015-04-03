@@ -15,6 +15,7 @@ public class ImageHelper {
 		Graphics2D graphics2D = result.createGraphics();
 
 		graphics2D.drawImage(sourceImage, 0, 0, result.getWidth() - 1, result.getHeight() - 1, sourceArea.x, sourceArea.y, sourceArea.x + sourceArea.width - 1, sourceArea.y + sourceArea.height - 1, null);
+		graphics2D.dispose();
 
 		return result;
 	}
@@ -27,7 +28,9 @@ public class ImageHelper {
 		double skewAngle = Deskew.getSkewAngle(image);
 		return Deskew.rotate(image, skewAngle, centerX, centerY);
 	}
-	public static BufferedImage rotate(BufferedImage image, double angle) {
+	public static BufferedImage rotate(BufferedImage image, int angle) {
+
+		if (angle % 360 == 0) return image;
 
 		double sin = Math.abs(Math.sin(Math.toRadians(angle)));
 		double cos = Math.abs(Math.cos(Math.toRadians(angle)));

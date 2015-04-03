@@ -2,9 +2,11 @@ package net.nekoinemo.documentrecognition;
 
 import net.nekoinemo.documentrecognition.document.IDocumentData;
 import net.nekoinemo.documentrecognition.event.*;
+import org.apache.commons.io.FilenameUtils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,6 +17,19 @@ public class App {
 	public static Path AppLocation;
 
 	public static void main(String[] args) throws URISyntaxException, FileNotFoundException {
+
+		if (args.length == 1){
+			try {
+				File file = new File(args[0]);
+				BufferedImage image = ImageIO.read(file);
+				image = ImageHelper.deskewImage(image);
+				ImageIO.write(image, "png", new File(file.getParentFile(), FilenameUtils.removeExtension(file.getName()) + "_deskewed.png"));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			return;
+		}
 
 		AppLocation = Paths.get(App.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
 
@@ -87,7 +102,7 @@ public class App {
 
 			recognitionManager.stop(); // Stops the recognitionManager, aborting any queued tasks. Should be done on the system shutdown
 
-			results.forEach((docID, docData) -> System.out.println(docID + " " + docData)); // In this example all returned data was stored in the map, now it's printed
+			//results.forEach((docID, docData) -> System.out.println(docID + " " + docData)); // In this example all returned data was stored in the map, now it's printed
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

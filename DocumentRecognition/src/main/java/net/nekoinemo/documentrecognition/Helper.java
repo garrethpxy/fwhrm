@@ -54,7 +54,9 @@ public class Helper {
 
 		return result;
 	}
-	public static void rotateImageFile(File file, double angle) throws IOException {
+	public static void rotateImageFile(File file, int angle) throws IOException {
+
+		if (angle % 360 == 0) return;
 
 		BufferedImage image = ImageIO.read(file);
 		image = ImageHelper.rotate(image, angle);
