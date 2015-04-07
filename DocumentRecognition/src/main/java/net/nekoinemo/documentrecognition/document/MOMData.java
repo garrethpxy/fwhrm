@@ -2,7 +2,7 @@ package net.nekoinemo.documentrecognition.document;
 
 public class MOMData implements IDocumentData {
 
-	protected static final String[] DATA_FIELDS = new String[]{ "date_of_birth", "employer_name", "employer_telephone", "employer_uen", "full_name", "nationality", "nric_or_fin_number", "occupation", "passport_number", "work_permit_number" };
+	protected static final String[] DATA_FIELDS = new String[]{ "date_of_birth", "employer_name", "employer_telephone", "employer_uen", "full_name", "nationality", "nric_or_fin_number", "occupation", "passport_number", "work_permit_number", "work_permit_expiry", "employment_agency_address" };
 
 	protected String date_of_birth = null;
 	protected String employer_name = null;
@@ -14,6 +14,8 @@ public class MOMData implements IDocumentData {
 	protected String occupation = null;
 	protected String passport_number = null;
 	protected String work_permit_number = null;
+	protected String work_permit_expiry = null;
+	protected String employment_agency_address = null;
 
 	protected MOMData() {}
 
@@ -57,6 +59,14 @@ public class MOMData implements IDocumentData {
 
 		return work_permit_number;
 	}
+	public String getWork_permit_expiry() {
+
+		return work_permit_expiry;
+	}
+	public String getEmployment_agency_address() {
+
+		return employment_agency_address;
+	}
 
 	@Override
 	public DocumentType getDocumentType() {
@@ -90,6 +100,8 @@ public class MOMData implements IDocumentData {
 				(employer_name != null ? " employer_name='" + employer_name + '\'' : "") +
 				(employer_telephone != null ? " employer_telephone='" + employer_telephone + '\'' : "") +
 				(employer_uen != null ? " employer_uen='" + employer_uen + '\'' : "") +
+				(work_permit_expiry != null ? " work_permit_expiry='" + work_permit_expiry + '\'' : "") +
+				(employment_agency_address != null ? " employment_agency_address='" + employment_agency_address + '\'' : "") +
 				" }";
 	}
 	@Override
@@ -108,6 +120,8 @@ public class MOMData implements IDocumentData {
 				"\n\temployer_name='" + employer_name + '\'' +
 				"\n\temployer_telephone='" + employer_telephone + '\'' +
 				"\n\temployer_uen='" + employer_uen + '\'' +
+				"\n\twork_permit_expiry='" + work_permit_expiry + '\'' +
+				"\n\temployment_agency_address='" + employment_agency_address + '\'' +
 				"\n}";
 	}
 }

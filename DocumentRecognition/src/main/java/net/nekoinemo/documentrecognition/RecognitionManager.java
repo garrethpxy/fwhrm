@@ -4,6 +4,7 @@ import net.nekoinemo.documentrecognition.document.DocumentType;
 import net.nekoinemo.documentrecognition.document.IDocumentDataBuilder;
 import net.nekoinemo.documentrecognition.event.*;
 import net.sourceforge.tess4j.*;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -351,6 +352,17 @@ public class RecognitionManager implements IRecognitionManager {
 
 		try {
 			target.prepare();
+
+			// Save copy of image in debug folder
+			if(isDebugOutput()){
+				target.getImages().forEach(imageFile -> {
+					try {
+						FileUtils.copyFileToDirectory(imageFile, debugOutputDirectory);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				});
+			}
 
 			if (target.getDocumentType() == null) {
 				target.getEventListener().recognitionFinished(new RecognitionResultEvent.RecognitionResultEventBuilder(target.getId()).getEvent());

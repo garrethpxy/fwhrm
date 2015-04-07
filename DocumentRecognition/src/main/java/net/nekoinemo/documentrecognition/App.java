@@ -1,13 +1,20 @@
 package net.nekoinemo.documentrecognition;
 
+import com.sun.jna.Platform;
 import net.nekoinemo.documentrecognition.document.IDocumentData;
 import net.nekoinemo.documentrecognition.event.*;
+import nu.pattern.OpenCV;
 import org.apache.commons.io.FilenameUtils;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.highgui.Highgui;
+import org.opencv.imgproc.Imgproc;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.lang.reflect.Field;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -18,20 +25,46 @@ public class App {
 
 	public static void main(String[] args) throws URISyntaxException, FileNotFoundException {
 
-		if (args.length == 1){
+		AppLocation = Paths.get(App.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
+
+		if (args.length == 1) {
 			try {
-				File file = new File(args[0]);
-				BufferedImage image = ImageIO.read(file);
-				image = ImageHelper.deskewImage(image);
-				ImageIO.write(image, "png", new File(file.getParentFile(), FilenameUtils.removeExtension(file.getName()) + "_deskewed.png"));
-			} catch (IOException e) {
+				// Load OpenCV library
+				if (Platform.isWindows()) {
+					File tmpDir = new File(System.getProperty("java.io.tmpdir"), "opencv");
+					tmpDir.mkdirs();
+					URL winLib = App.class.getResource("opencv/" + Platform.RESOURCE_PREFIX + '/' + Core.NATIVE_LIBRARY_NAME + ".dll");
+
+					//Files.copy(winLib, tmpDir.toPath().resolve(Core.NATIVE_LIBRARY_NAME + ".dll"));
+					org.apache.commons.io.FileUtils.copyURLToFile(winLib, tmpDir.toPath().resolve(Core.NATIVE_LIBRARY_NAME + ".dll").toFile());
+
+					System.setProperty("java.library.path", System.getProperty("java.library.path") + System.getProperty("path.separator") + tmpDir.getAbsolutePath());
+					Field systemPathsField = ClassLoader.class.getDeclaredField("sys_paths");
+					systemPathsField.setAccessible(true);
+					systemPathsField.set(null, null);
+
+					System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+				} else {
+					OpenCV.loadLibrary();
+				}
+
+				// Load file
+				File inputFile = new File(args[0]);
+				File outputFile = new File(inputFile.getParentFile(), FilenameUtils.removeExtension(inputFile.getName()) + "_processed.png");
+
+				Mat imageSrc = Highgui.imread(inputFile.getAbsolutePath());
+				//Mat imageDst = new Mat(imageSrc.rows(), imageSrc.cols(), imageSrc.type());
+				Mat imageDst = new Mat();
+
+				Imgproc.threshold(imageSrc, imageDst, 160, 255, Imgproc.THRESH_BINARY);
+
+				Highgui.imwrite(outputFile.getAbsolutePath(), imageDst);
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 
 			return;
 		}
-
-		AppLocation = Paths.get(App.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
 
 		if (args.length != 2) {
 			System.out.println("Command line mode. Specify tessdata path as first argument and scans directory as second");

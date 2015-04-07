@@ -6,9 +6,9 @@ import java.awt.*;
 
 public class VisitPassAreaStructure {
 
-	private final static float MODIFIER_ROUGHT_MAIN_WIDTH = 6f;
-	private final static float MODIFIER_ROUGHT_MAIN_HEIGHT_UP = 2.0f;
-	private final static float MODIFIER_ROUGHT_MAIN_HEIGHT_DOWN = 29.0f;
+	private final static float MODIFIER_ROUGHT_MAIN_WIDTH = 8f;
+	private final static float MODIFIER_ROUGHT_MAIN_HEIGHT_UP = 3.0f;
+	private final static float MODIFIER_ROUGHT_MAIN_HEIGHT_DOWN = 32.0f;
 	private final static float MODIFIER_MAIN_WIDTH = 5.5f;
 	private final static float MODIFIER_MAIN_HEIGHT = 22.0f;
 

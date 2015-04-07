@@ -21,6 +21,8 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 	private static ArrayList<Pattern> patterns_occupation = new ArrayList<>();
 	private static ArrayList<Pattern> patterns_passport_number = new ArrayList<>();
 	private static ArrayList<Pattern> patterns_work_permit_number = new ArrayList<>();
+	private static ArrayList<Pattern> patterns_work_permit_expiry = new ArrayList<>();
+	private static ArrayList<Pattern> patterns_employment_agency_address = new ArrayList<>();
 	static {
 
 		patterns_full_name.add(Pattern.compile("Name.*?worker.*?((?:[A-Z\\d]{3,}[ ]?)+)", Pattern.MULTILINE));
@@ -48,6 +50,10 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 		patterns_employer_uen.add(Pattern.compile("CPF.*?Submission.*?No.*?(\\d{6,}?\\w-[a-z]{3}-\\d{2})", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
 		patterns_employer_uen.add(Pattern.compile("CPF.*?Submission.*?No.*?(\\d{6,}?\\w[^a-z\\d]*[a-z]{3}[^a-z\\d]*\\d{2})", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
 		patterns_employer_uen.add(Pattern.compile("(\\d{6,}?\\w[^a-z\\d]*[a-z]{3}[^a-z\\d]*\\d{2})", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE));
+
+		patterns_work_permit_expiry.add(Pattern.compile("Date.*?WP.*?(\\d{2})\\/(\\d{2})\\/(\\d{4}).*?Expiry", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL));
+
+		patterns_employment_agency_address.add(Pattern.compile("Employment.*?:.*?\\s(.{6,})\\s.*?Employment", Pattern.MULTILINE));
 	}
 
 	private final MOMData momData;
@@ -69,7 +75,10 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 
 		int currentSettings = 0;
 		while (currentSettings < settings.length && getCompleteness() < settings[currentSettings].getPassingCompliteness()){
+			debugText.append("\nIteration " + (currentSettings + 1) + '/' + settings.length + '\t' + settings[currentSettings].toString() + '\n');
+
 			for (File file : target.getImages()) {
+				debugText.append("\nFile " + file.getName() + '\n');
 				doRecognition(file, settings[currentSettings]);
 			}
 
@@ -92,6 +101,8 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 		RecognitionManager recognitionManager = RecognitionManager.getInstance();
 		Document document = Jsoup.parse(recognitionManager.recognize(target, null, settings));
 		String rawText = Helper.getProperTextFromJSoupDoc(document);
+
+		debugText.append("rawText: { " + rawText + " }\n\n");
 
 		Matcher matcher;
 		for (int i = 0; i < patterns_full_name.size(); i++) {
@@ -161,6 +172,20 @@ public class MOMDataBuilder implements IDocumentDataBuilder {
 			matcher = patterns_employer_uen.get(i).matcher(rawText);
 			if (matcher.find()) {
 				momData.employer_uen = matcher.group(1).trim();
+				break;
+			}
+		}
+		for (int i = 0; i < patterns_work_permit_expiry.size(); i++) {
+			matcher = patterns_work_permit_expiry.get(i).matcher(rawText);
+			if (matcher.find()) {
+				momData.work_permit_expiry = matcher.group(1) + '/' + matcher.group(2) + '/' + matcher.group(3);
+				break;
+			}
+		}
+		for (int i = 0; i < patterns_employment_agency_address.size(); i++) {
+			matcher = patterns_employment_agency_address.get(i).matcher(rawText);
+			if (matcher.find()) {
+				momData.employment_agency_address = matcher.group(1).trim();
 				break;
 			}
 		}
