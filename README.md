@@ -9,9 +9,9 @@ Foreign Worker HRM
 #### Win
 * All dlls are included in the corresponding jars and deployed automatically.
 
-#### Linux (*to be tested*)
+#### Linux
 1. Execute "sudo apt-get install tesseract-ocr".
-3. Execute "sudo apt-get install ghostscript".
+2. Execute "sudo apt-get install ghostscript".
 
 #### Mac OS
 1. Install "Homebrew" software.
