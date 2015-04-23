@@ -1,7 +1,6 @@
 package net.nekoinemo.documentrecognition;
 
 import net.nekoinemo.documentrecognition.processing.OpenCVHelper;
-import net.nekoinemo.documentrecognition.processing.OpenCVTester;
 import net.nekoinemo.documentrecognition.processing.math.Line;
 import org.apache.commons.io.FilenameUtils;
 import org.opencv.core.*;
@@ -39,8 +38,6 @@ public class AppOpenCV {
 				targets.add(inputFile);
 			}
 			for (File target : targets) {
-				OpenCVTester.findLines(target, false);
-
 				String outputNameTemplate = FilenameUtils.removeExtension(target.getAbsolutePath());
 
 				Mat image = Highgui.imread(target.getAbsolutePath(), 0);
@@ -49,16 +46,17 @@ public class AppOpenCV {
 				ArrayList<Line> linesH = OpenCVHelper.lines(image, OpenCVHelper.HORIZONTAL, 200);
 				ArrayList<Line> linesV = OpenCVHelper.lines(image, OpenCVHelper.VERTICAL, 200);
 
-				Mat imageLines = Mat.zeros(image.size(), CvType.CV_8UC1);
+				Mat imageLines = Mat.zeros(image.size(), CvType.CV_8UC3);
+				Scalar colour = new Scalar(0, 0, 255);
 				for (Line line : linesH) {
-//					line.draw(imageLines);
-					Line newLine = new Line(0, line.getPoint1().y, image.size().width, line.getPoint2().y);
-					newLine.draw(imageLines);
+					line.draw(imageLines, colour, 3);
 				}
 				for (Line line : linesV) {
-					line.draw(imageLines);
+					line.draw(imageLines, colour, 3);
 				}
 				Highgui.imwrite(outputNameTemplate + "_lines" + "_.png", imageLines);
+				image.release();
+				imageLines.release();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
