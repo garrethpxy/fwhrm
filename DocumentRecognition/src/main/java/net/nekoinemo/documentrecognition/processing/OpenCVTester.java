@@ -1,10 +1,13 @@
 package net.nekoinemo.documentrecognition.processing;
 
+import net.nekoinemo.documentrecognition.processing.math.Line;
 import org.apache.commons.io.FilenameUtils;
 import org.opencv.core.*;
+import org.opencv.core.Point;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
+import java.awt.*;
 import java.io.File;
 
 public class OpenCVTester {
@@ -48,7 +51,7 @@ public class OpenCVTester {
 		angle /= lines.cols();
 		System.out.println(inputFile.getName().concat(" : ").concat(String.valueOf(angle)));
 
-		// Write image (lines)
+		// Write image (linesHV)
 		Highgui.imwrite(outputNameTemplate + "_lines_.png", imageLines);
 
 		// Rotating
@@ -58,5 +61,21 @@ public class OpenCVTester {
 
 		// Write image (rotated)
 		Highgui.imwrite(outputNameTemplate + "_rotated_.png", imageRotated);
+	}
+
+	public static boolean isHorizontalPair(Line line1, Line line2, double margin) {
+
+		if (!line1.normalAbs().equals(line2.normalAbs())) return false;
+
+		return (Math.abs(line1.getPoint1().x - line2.getPoint1().x) < margin && Math.abs(line1.getPoint2().x - line2.getPoint2().x) < margin) || (Math.abs(line1.getPoint1().x - line2.getPoint2().x) < margin && Math.abs(line1.getPoint2().x - line2.getPoint1().x) < margin);
+	}
+	public static Rectangle rectangle(Line line1, Line line2) {
+
+		int x1 = (int) (Math.max(line1.getPoint1().x, line2.getPoint1().x));
+		int y1 = (int) (Math.min(line1.getPoint1().y, line2.getPoint1().y));
+		int x2 = (int) (Math.min(line1.getPoint2().x, line2.getPoint2().x));
+		int y2 = (int) (Math.max(line1.getPoint1().y, line2.getPoint1().y));
+
+		return new Rectangle(x1, y1, x2 - x1, y2 - y1);
 	}
 }

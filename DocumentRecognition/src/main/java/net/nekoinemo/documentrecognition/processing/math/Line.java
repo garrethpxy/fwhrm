@@ -16,8 +16,13 @@ public class Line {
 
 	public Line(double x1, double y1, double x2, double y2) {
 
-		point1 = new Point(x1, y1);
-		point2 = new Point(x2, y2);
+		if (x1 < x2) {
+			point1 = new Point(x1, y1);
+			point2 = new Point(x2, y2);
+		} else {
+			point1 = new Point(x2, y2);
+			point2 = new Point(x1, y1);
+		}
 	}
 
 	public Point getPoint2() {
@@ -27,6 +32,10 @@ public class Line {
 	public Point getPoint1() {
 
 		return point1;
+	}
+	public double length(){
+
+		return MathHelper.distance(point1, point2);
 	}
 
 	public boolean isNear(Line line) {
@@ -55,11 +64,11 @@ public class Line {
 		if (b2 < nearDistance && b1 < bl) return true;
 		return false;
 	}
-	public boolean isIntersects(Line line){
+	public boolean intersects(Line line) {
 
-		return isIntersects(line, null);
+		return intersects(line, null);
 	}
-	public boolean isIntersects(Line line, Point intersection) {
+	public boolean intersects(Line line, Point intersection) {
 
 		double x1d = point2.x - point1.x;
 		double y1d = point2.y - point1.y;

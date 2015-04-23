@@ -50,12 +50,14 @@ public class OpenCVHelper {
 
 	/**
 	 * Gets lines on the passed image. Will only find strictly horizontal or vertical lines
+	 *
 	 * @param invertedImage bitwise inverted OpenCV image
 	 * @param orientation
 	 * @param minLineLength
+	 *
 	 * @return
 	 */
-	public static ArrayList<Line> lines(Mat invertedImage, int orientation, int minLineLength) {
+	public static ArrayList<Line> linesHV(Mat invertedImage, int orientation, int minLineLength) {
 
 		Size morphSize = orientation == HORIZONTAL ? new Size(10, 1) : new Size(1, 10);
 
@@ -66,7 +68,7 @@ public class OpenCVHelper {
 		Imgproc.medianBlur(imageTmp, imageTmp, 3);
 
 		Mat lines = new Mat();
-		Imgproc.HoughLinesP(imageTmp, lines, 1, Math.PI / 4, 100, minLineLength, 200);
+		Imgproc.HoughLinesP(imageTmp, lines, 1, Math.PI / 2, 100, minLineLength, 200);
 		imageTmp.release();
 		ArrayList<Line> acceptedLines = new ArrayList<>();
 		for (int i = 0; i < lines.cols(); i++) {
