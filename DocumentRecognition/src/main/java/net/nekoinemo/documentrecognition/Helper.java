@@ -1,5 +1,6 @@
 package net.nekoinemo.documentrecognition;
 
+import net.nekoinemo.documentrecognition.processing.ImageHelper;
 import net.sourceforge.vietocr.PdfUtilities;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;

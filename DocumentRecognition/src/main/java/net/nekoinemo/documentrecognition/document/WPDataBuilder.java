@@ -3,6 +3,7 @@ package net.nekoinemo.documentrecognition.document;
 import net.nekoinemo.documentrecognition.*;
 import net.nekoinemo.documentrecognition.misc.VisitPassAreaStructure;
 import net.nekoinemo.documentrecognition.misc.WorkPermitAreaStructure;
+import net.nekoinemo.documentrecognition.processing.ImageHelper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;

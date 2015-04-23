@@ -1,4 +1,4 @@
-package net.nekoinemo.documentrecognition;
+package net.nekoinemo.documentrecognition.processing;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;

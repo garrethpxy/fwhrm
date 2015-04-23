@@ -3,6 +3,7 @@ package net.nekoinemo.documentrecognition;
 import net.nekoinemo.documentrecognition.document.DocumentType;
 import net.nekoinemo.documentrecognition.document.IDocumentDataBuilder;
 import net.nekoinemo.documentrecognition.event.*;
+import net.nekoinemo.documentrecognition.processing.ImageHelper;
 import net.sourceforge.tess4j.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -502,7 +503,6 @@ public class RecognitionManager implements IRecognitionManager {
 			}
 
 			if (documentType != null && currentAngle != 0) {
-				documentType = documentType;
 				rotationAngle = currentAngle;
 
 				rotateImages();
