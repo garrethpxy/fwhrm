@@ -75,7 +75,7 @@ public class OpenCVHelper {
 			double[] vec = lines.get(0, i);
 
 			Line line = new Line(vec[0], vec[1], vec[2], vec[3]);
-			if (!acceptedLines.stream().anyMatch(existingLine -> existingLine.isNear(line))) {
+			if ((orientation == HORIZONTAL ? line.isHorizontal() : line.isVertical()) && !acceptedLines.stream().anyMatch(existingLine -> existingLine.isNear(line))) {
 				acceptedLines.add(line);
 			}
 		}
