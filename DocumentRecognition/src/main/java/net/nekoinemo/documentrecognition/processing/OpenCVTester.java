@@ -1,6 +1,5 @@
 package net.nekoinemo.documentrecognition.processing;
 
-import net.nekoinemo.documentrecognition.processing.math.Line;
 import org.apache.commons.io.FilenameUtils;
 import org.opencv.core.*;
 import org.opencv.highgui.Highgui;
@@ -59,12 +58,5 @@ public class OpenCVTester {
 
 		// Write image (rotated)
 		Highgui.imwrite(outputNameTemplate + "_rotated_.png", imageRotated);
-	}
-
-	public static boolean isHorizontalPair(Line line1, Line line2, double margin) {
-
-		if (!line1.normalAbs().equals(line2.normalAbs())) return false;
-
-		return (Math.abs(line1.getPoint1().x - line2.getPoint1().x) < margin && Math.abs(line1.getPoint2().x - line2.getPoint2().x) < margin) || (Math.abs(line1.getPoint1().x - line2.getPoint2().x) < margin && Math.abs(line1.getPoint2().x - line2.getPoint1().x) < margin);
 	}
 }

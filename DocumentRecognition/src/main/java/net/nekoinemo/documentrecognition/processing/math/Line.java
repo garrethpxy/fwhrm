@@ -88,6 +88,20 @@ public class Line {
 
 		return false; // No collision
 	}
+	/**
+	 * Checks if passed line and this line are both horizontally oriented and their ends' X are the same (within certain margin)
+	 *
+	 * @param line
+	 * @param margin
+	 *
+	 * @return
+	 */
+	public boolean isHorizontalPair(Line line, double margin) {
+
+		if (!this.normalAbs().equals(line.normalAbs())) return false;
+
+		return (Math.abs(this.getPoint1().x - line.getPoint1().x) < margin && Math.abs(this.getPoint2().x - line.getPoint2().x) < margin) || (Math.abs(this.getPoint1().x - line.getPoint2().x) < margin && Math.abs(this.getPoint2().x - line.getPoint1().x) < margin);
+	}
 
 	public Point normal() {
 
