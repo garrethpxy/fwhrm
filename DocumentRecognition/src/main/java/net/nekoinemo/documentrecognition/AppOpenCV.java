@@ -1,14 +1,9 @@
 package net.nekoinemo.documentrecognition;
 
 import net.nekoinemo.documentrecognition.processing.OpenCVHelper;
+import net.nekoinemo.documentrecognition.processing.OpenCVTester;
 import org.apache.commons.io.FilenameUtils;
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.highgui.Highgui;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
@@ -41,19 +36,7 @@ public class AppOpenCV {
 				targets.add(inputFile);
 			}
 			for (File target : targets) {
-				String outputNameTemplate = FilenameUtils.removeExtension(target.getAbsolutePath());
-
-				Mat image = Highgui.imread(target.getAbsolutePath(), 0);
-				Core.bitwise_not(image, image);
-
-				ArrayList<Rectangle> regions = OpenCVHelper.regionsMOM(image);
-				image.release();
-
-				BufferedImage input = ImageIO.read(target);
-				for (int i = 0; i < regions.size(); i++) {
-					Rectangle region = regions.get(i);
-					ImageIO.write(input.getSubimage(region.x, region.y, region.width, region.height), "png", new File(outputNameTemplate + "_reion" + i + "_.png"));
-				}
+				OpenCVTester.doRotation3(target);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
